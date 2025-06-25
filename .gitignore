@@ -193,4 +193,11 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
+### DB
+
+application-*.yml
+application-*.properties
+.env
+
+
 # End of https://www.toptal.com/developers/gitignore/api/windows,intellij,java,gradle
