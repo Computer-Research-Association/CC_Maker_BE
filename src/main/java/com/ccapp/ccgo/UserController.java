@@ -1,4 +1,4 @@
-package com.ccapp.controller;
+package com.ccapp.ccgo;
 
 import com.ccapp.ccgo.User;
 import com.ccapp.ccgo.UserService;

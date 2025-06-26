@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "users")  // DB 테이블 이름
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA가 사용할 기본 생성자
 @AllArgsConstructor
 @Builder
