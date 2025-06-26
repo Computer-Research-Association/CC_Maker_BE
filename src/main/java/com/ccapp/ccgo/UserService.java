@@ -9,10 +9,10 @@ import com.ccapp.ccgo.UserRepository;
 @Service
 public class UserService {
 
-    // TodoRepo를 이 클래스 안에서 사용하기 위해 선언한 필드
+    // UserRepository를 이 클래스 안에서 사용하기 위해 선언한 필드
 
     // 이렇게 final을 붙이면 무슨 뜻이냐면,
-    // 이 변수(todoRepo)는 생성자에서 딱 한 번만 값이 들어갈 수 있고,
+    // 이 변수(userRepository)는 생성자에서 딱 한 번만 값이 들어갈 수 있고,
     // 그 이후에는 절대로 다른 객체로 바꿀 수 없다.
     private final UserRepository userRepository;
 
@@ -22,8 +22,8 @@ public class UserService {
     // 1. 객체가 만들어질 때 필요한 값을 전달받음
     // 2. 전달받은 값을 클래스 안의 필드에 저장
 
-    // this.todoRepo → 클래스에 선언된 필드
-    //todoRepo → 생성자 매개변수로 들어온 값
+    // this.UserRepository → 클래스에 선언된 필드
+    //userRepository → 생성자 매개변수로 들어온 값
     //즉, "밖에서 받은 리포지토리를 내 필드에 저장한다"는 뜻
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -40,8 +40,6 @@ public class UserService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
-    // findById()는 무조건 성공하지 않음
-    // Optional<T>로 감싸서 "값이 없을 수 있어!" 라고 알려줌.
 
     public User getUserById(Long id) {
         return userRepository.findById(id)
