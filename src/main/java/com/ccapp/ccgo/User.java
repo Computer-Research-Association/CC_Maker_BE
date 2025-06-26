@@ -2,6 +2,8 @@ package com.ccapp.ccgo;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -28,6 +30,14 @@ public class User {
 
     // 유저 이름
     private String name;
+
+    // 생년월일 (nullable 허용)
+    @Column(name = "birthdate")
+    private LocalDate birthdate;
+
+    // 성별 (예: "MALE", "FEMALE" 문자열로 저장)
+    @Column(name = "gender")
+    private String gender;
 
     // 데이터 입력받은 시간 저장
     @Column(name = "created_at", updatable = false)

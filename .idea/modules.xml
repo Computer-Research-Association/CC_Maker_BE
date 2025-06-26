@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/CC_Maker_BE.iml" filepath="$PROJECT_DIR$/.idea/CC_Maker_BE.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/CC_Maker_BE.main.iml" filepath="$PROJECT_DIR$/.idea/modules/CC_Maker_BE.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/CC_Maker_BE.test.iml" filepath="$PROJECT_DIR$/.idea/modules/CC_Maker_BE.test.iml" />
     </modules>
   </component>
 </project>

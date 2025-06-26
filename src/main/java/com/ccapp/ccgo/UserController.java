@@ -2,6 +2,7 @@ package com.ccapp.ccgo;
 
 import com.ccapp.ccgo.User;
 import com.ccapp.ccgo.UserService;
+import com.ccapp.ccgo.dto.UserResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ public class UserController {
     public ResponseEntity<?> register(@RequestBody User user) {
         try {
             System.out.println("회원가입 요청 도착: " + user.getEmail());
-            User saved = userService.register(user);
+            UserResponseDto saved = userService.register(user);
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             // 예외 메시지 로그 출력
@@ -35,7 +36,7 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User requestUser) {
         try {
-            User loginUser = userService.login(requestUser.getEmail(), requestUser.getPassword());
+            UserResponseDto loginUser = userService.login(requestUser.getEmail(), requestUser.getPassword());
             return ResponseEntity.ok(loginUser);
         } catch (Exception e) {
             return ResponseEntity

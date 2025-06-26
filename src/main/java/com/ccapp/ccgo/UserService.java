@@ -1,74 +1,86 @@
 package com.ccapp.ccgo;
 
+import com.ccapp.ccgo.dto.UserRequestDto;
+import com.ccapp.ccgo.dto.UserResponseDto;
+import com.ccapp.ccgo.dto.UserMapper;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
-import com.ccapp.ccgo.User;
-import com.ccapp.ccgo.UserRepository;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
 
-    // UserRepository를 이 클래스 안에서 사용하기 위해 선언한 필드
-
-    // 이렇게 final을 붙이면 무슨 뜻이냐면,
-    // 이 변수(userRepository)는 생성자에서 딱 한 번만 값이 들어갈 수 있고,
-    // 그 이후에는 절대로 다른 객체로 바꿀 수 없다.
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    // TodoService 클래스의 생성자
-    // 클래스가 처음 만들어질 때 딱 한번 실행되는 특별한 메소드
-
-    // 1. 객체가 만들어질 때 필요한 값을 전달받음
-    // 2. 전달받은 값을 클래스 안의 필드에 저장
-
-    // this.UserRepository → 클래스에 선언된 필드
-    //userRepository → 생성자 매개변수로 들어온 값
-    //즉, "밖에서 받은 리포지토리를 내 필드에 저장한다"는 뜻
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
+        this.passwordEncoder = new BCryptPasswordEncoder(); // 단순 암호화용 인코더
     }
 
-    //회원가입시
-    public User register(User user) {
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+    // 📌 1. 회원가입
+    public UserResponseDto register(User dto) {
+        if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new RuntimeException("이미 가입된 이메일입니다.");
         }
-        return userRepository.save(user);
+
+        String encodedPassword = passwordEncoder.encode(dto.getPassword());
+        User user = UserMapper.toEntity(dto, encodedPassword);
+        userRepository.save(user);
+
+        return UserMapper.toDto(user);
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    // 📌 2. 로그인
+    public UserResponseDto login(String email, String rawPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("등록되지 않은 이메일입니다."));
+
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+        }
+
+        return UserMapper.toDto(user);
     }
 
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
+    // 📌 3. 전체 사용자 조회
+    public List<UserResponseDto> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(UserMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    // 📌 4. 사용자 상세 조회
+    public UserResponseDto getUserById(Long id) {
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("해당 ID의 사용자가 없습니다."));
+        return UserMapper.toDto(user);
     }
 
-    public User updateUser(Long id, User updatedUser) {
+    // 📌 5. 사용자 정보 수정
+    public UserResponseDto updateUser(Long id, UserRequestDto dto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("해당 ID의 사용자가 없습니다."));
 
-        user.setEmail(updatedUser.getEmail());
-        user.setPassword(updatedUser.getPassword());
+        user.setEmail(dto.getEmail());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setName(dto.getName());
+        user.setGender(dto.getGender());
+        user.setBirthdate(dto.getBirthdate());
 
-        return userRepository.save(user);
+        userRepository.save(user);
+        return UserMapper.toDto(user);
     }
 
+    // 📌 6. 사용자 삭제
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
             throw new RuntimeException("삭제할 사용자가 존재하지 않습니다.");
         }
-
         userRepository.deleteById(id);
     }
-
-    //로그인 기능, password는 아직 미구현
-    public User login(String email, String rawPassword) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("등록되지 않은 이메일입니다."));
-        return user;
-    }
-
 }
