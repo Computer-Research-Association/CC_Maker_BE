@@ -199,5 +199,7 @@ application-*.yml
 application-*.properties
 .env
 
+# bin 폴더
+/bin/
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,intellij,java,gradle
