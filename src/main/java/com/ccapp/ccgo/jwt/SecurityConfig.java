@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register").permitAll()  // 로그인, 회원가입 허용
+                        .requestMatchers("/api/auth/login", "/register").permitAll()  // 로그인, 회원가입 허용
                         .anyRequest().authenticated()                       // 그 외는 인증 필요
                 )
                 .authenticationProvider(authenticationProvider())
