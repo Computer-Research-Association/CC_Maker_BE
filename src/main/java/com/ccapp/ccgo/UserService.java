@@ -3,8 +3,13 @@ package com.ccapp.ccgo;
 import com.ccapp.ccgo.dto.UserRequestDto;
 import com.ccapp.ccgo.dto.UserResponseDto;
 import com.ccapp.ccgo.dto.UserMapper;
-
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.ccapp.ccgo.exception.CustomException;
+import com.ccapp.ccgo.jwt.JwtProvider;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -12,20 +17,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
+    private final AuthenticationManager authenticationManager;
 
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder(); // 단순 암호화용 인코더
-    }
-
-    // 📌 1. 회원가입
-    public UserResponseDto register(User dto) {
+    // 1. 회원가입
+    public UserResponseDto register(UserRequestDto dto) {
         if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
-            throw new RuntimeException("이미 가입된 이메일입니다.");
+            throw new CustomException("이미 가입된 이메일입니다.", HttpStatus.CONFLICT);
         }
 
         String encodedPassword = passwordEncoder.encode(dto.getPassword());
@@ -35,39 +38,38 @@ public class UserService {
         return UserMapper.toDto(user);
     }
 
-    // 📌 2. 로그인
-    public UserResponseDto login(String email, String rawPassword) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("등록되지 않은 이메일입니다."));
+    // 2. 로그인: JWT 토큰 생성 반환
+    public String loginAndGetToken(String email, String password) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password)
+        );
 
-        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
-        }
-
-        return UserMapper.toDto(user);
+        return jwtProvider.createAccessToken(authentication);
     }
 
-    // 📌 3. 전체 사용자 조회
+    // 3. 전체 사용자 조회
     public List<UserResponseDto> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(UserMapper::toDto)
                 .collect(Collectors.toList());
     }
 
-    // 📌 4. 사용자 상세 조회
+    // 4. 사용자 상세 조회
     public UserResponseDto getUserById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("해당 ID의 사용자가 없습니다."));
+                .orElseThrow(() -> new CustomException("해당 ID의 사용자가 없습니다.", HttpStatus.NOT_FOUND));
         return UserMapper.toDto(user);
     }
 
-    // 📌 5. 사용자 정보 수정
+    // 5. 사용자 정보 수정
     public UserResponseDto updateUser(Long id, UserRequestDto dto) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("해당 ID의 사용자가 없습니다."));
+                .orElseThrow(() -> new CustomException("해당 ID의 사용자가 없습니다.", HttpStatus.NOT_FOUND));
 
         user.setEmail(dto.getEmail());
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
         user.setName(dto.getName());
         user.setGender(dto.getGender());
         user.setBirthdate(dto.getBirthdate());
@@ -76,10 +78,10 @@ public class UserService {
         return UserMapper.toDto(user);
     }
 
-    // 📌 6. 사용자 삭제
+    // 6. 사용자 삭제
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new RuntimeException("삭제할 사용자가 존재하지 않습니다.");
+            throw new CustomException("삭제할 사용자가 존재하지 않습니다.", HttpStatus.NOT_FOUND);
         }
         userRepository.deleteById(id);
     }
