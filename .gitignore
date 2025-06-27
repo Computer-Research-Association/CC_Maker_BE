@@ -202,4 +202,7 @@ application-*.properties
 # bin 폴더
 /bin/
 
+# resources
+/src/main/resources
+
 # End of https://www.toptal.com/developers/gitignore/api/windows,intellij,java,gradle

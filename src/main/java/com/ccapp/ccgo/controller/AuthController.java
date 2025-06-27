@@ -1,8 +1,11 @@
 package com.ccapp.ccgo.controller;
 
+import com.ccapp.ccgo.User;
 import com.ccapp.ccgo.dto.LoginRequestDto;
+import com.ccapp.ccgo.dto.LoginResponseDto;
 import com.ccapp.ccgo.jwt.JwtProvider;
 import com.ccapp.ccgo.jwt.JwtToken;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,19 +22,27 @@ public class AuthController {
     private final JwtProvider jwtProvider;
 
     @PostMapping("/login")
-    public ResponseEntity<JwtToken> login(@RequestBody LoginRequestDto requestDto) {
-        // 사용자 인증
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto requestDto) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         requestDto.getEmail(), requestDto.getPassword()
                 )
         );
 
-        // JWT 토큰 생성
         String accessToken = jwtProvider.createAccessToken(authentication);
-        String refreshToken = jwtProvider.createRefreshToken(authentication); // 선택 사항
+        String refreshToken = jwtProvider.createRefreshToken(authentication);
 
-        JwtToken token = new JwtToken("Bearer", accessToken, refreshToken);
-        return ResponseEntity.ok(token);
+        User user = (User) authentication.getPrincipal(); // UserDetails 상속 객체라면
+        LoginResponseDto response = LoginResponseDto.builder()
+                .grantType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .userId(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .build();
+
+        return ResponseEntity.ok(response);
     }
+
 }

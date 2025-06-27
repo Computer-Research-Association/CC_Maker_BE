@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import java.util.stream.Collectors;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import java.util.Map;
 
@@ -38,4 +39,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("message", errorMessage));
     }
 
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, String>> handleBadCredentials(BadCredentialsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("message", "이메일 또는 비밀번호가 잘못되었습니다."));
+    }
 }
