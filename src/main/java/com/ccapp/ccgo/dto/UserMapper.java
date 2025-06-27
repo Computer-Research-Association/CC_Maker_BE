@@ -6,7 +6,7 @@ import com.ccapp.ccgo.User;
 public class UserMapper {
 
     // RequestDto -> Entity
-    public static User toEntity(User dto, String encodedPassword) {
+    public static User toEntity(UserRequestDto dto, String encodedPassword) {
         return User.builder()
                 .email(dto.getEmail())
                 .password(encodedPassword)
