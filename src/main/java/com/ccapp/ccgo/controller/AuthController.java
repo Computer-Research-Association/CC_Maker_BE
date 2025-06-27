@@ -35,6 +35,7 @@ public class AuthController {
         String refreshToken = jwtProvider.createRefreshToken(authentication);
 
         System.out.println("Principal 클래스 =" + authentication.getPrincipal().getClass());
+        //dasf
 
         User user = (User) authentication.getPrincipal(); // UserDetails 상속 객체라면
 
