@@ -3,11 +3,13 @@ package com.ccapp.ccgo.jwt;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.security.core.Authentication;
 
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.stream.Collectors;
@@ -16,12 +18,19 @@ import java.util.stream.Collectors;
 public class JwtProvider {
 
     private final Key key;
+    private final long accessTokenExpiration;
+    private final long refreshTokenExpiration;
+
     private final long expirationTime = 1000L * 60 * 60 * 24; // 24시간
 
+
     //이 부분 보안상 취약할걸로 예상 수정 필요
-    public JwtProvider() {
-        String secret = "토론토로토론토토론을하면토론토토론으하하1234!@"; // 256비트 이상
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    public JwtProvider(@Value("${jwt.secret}") String secret,
+                       @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
+                       @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.accessTokenExpiration = accessTokenExpiration;
+        this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
     // ✅ 토큰 생성
@@ -43,6 +52,7 @@ public class JwtProvider {
                     .parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
+            // 여기서 로그를 남기는 것도 좋습니다.
             return false;
         }
     }
@@ -65,7 +75,7 @@ public class JwtProvider {
                 .collect(Collectors.joining(","));
 
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expirationTime);
+        Date expiryDate = new Date(now.getTime() + accessTokenExpiration);
 
         return Jwts.builder()
                 .setSubject(username)
@@ -78,7 +88,7 @@ public class JwtProvider {
 
     public String createRefreshToken(Authentication authentication) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expirationTime * 7); // 7일
+        Date expiryDate = new Date(now.getTime() + refreshTokenExpiration);
 
         return Jwts.builder()
                 .setSubject(authentication.getName())
@@ -87,5 +97,6 @@ public class JwtProvider {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
 }
