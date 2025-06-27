@@ -3,6 +3,8 @@ package com.ccapp.ccgo.controller;
 import com.ccapp.ccgo.UserService;
 import com.ccapp.ccgo.dto.UserRequestDto;
 import com.ccapp.ccgo.dto.UserResponseDto;
+import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,9 +19,8 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponseDto> register(@RequestBody UserRequestDto userRequestDto) {
+    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserRequestDto userRequestDto) {
         UserResponseDto saved = userService.register(userRequestDto);
-        return ResponseEntity.ok(saved);
-
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 }
