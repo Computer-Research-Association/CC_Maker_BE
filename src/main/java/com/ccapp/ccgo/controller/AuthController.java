@@ -6,6 +6,8 @@ import com.ccapp.ccgo.dto.LoginResponseDto;
 import com.ccapp.ccgo.jwt.JwtProvider;
 import com.ccapp.ccgo.jwt.JwtToken;
 import com.ccapp.ccgo.jwt.LoginUserDetails;
+import lombok.extern.slf4j.Slf4j;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -24,31 +28,67 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto requestDto) {
-        System.out.println("로그인 요청 도착: " + requestDto.getEmail() + requestDto.getPassword());
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        requestDto.getEmail(), requestDto.getPassword()
-                )
-        );
+        log.info("로그인 요청 받음: {}", requestDto.getEmail());
 
-        String accessToken = jwtProvider.createAccessToken(authentication);
-        String refreshToken = jwtProvider.createRefreshToken(authentication);
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            requestDto.getEmail(), requestDto.getPassword()
+                    )
+            );
 
-        System.out.println("Principal 클래스 =" + authentication.getPrincipal().getClass());
-        //dasf
+            String accessToken = jwtProvider.createAccessToken(authentication);
+            String refreshToken = jwtProvider.createRefreshToken(authentication);
 
-        User user = (User) authentication.getPrincipal(); // UserDetails 상속 객체라면
+            LoginUserDetails userDetails = (LoginUserDetails) authentication.getPrincipal();
+            User user = userDetails.getUser(); // ✅ 안전하게 User 꺼냄
 
-        LoginResponseDto response = LoginResponseDto.builder()
-                .grantType("Bearer")
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .userId(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .build();
+            LoginResponseDto response = LoginResponseDto.builder()
+                    .grantType("Bearer")
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .userId(user.getId())
+                    .email(user.getEmail())
+                    .name(user.getName())
+                    .build();
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("로그인 중 오류 발생", e);
+            throw e;
+        }
     }
-
 }
+
+
+
+//    @PostMapping("/login")
+//    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto requestDto) {
+//        System.out.println("로그인 요청 도착: " + requestDto.getEmail()+" "+ requestDto.getPassword());
+//        Authentication authentication = authenticationManager.authenticate(
+//                new UsernamePasswordAuthenticationToken(
+//                        requestDto.getEmail(), requestDto.getPassword()
+//                )
+//        );
+//
+//        String accessToken = jwtProvider.createAccessToken(authentication);
+//        String refreshToken = jwtProvider.createRefreshToken(authentication);
+//
+//
+//        System.out.println("Principal 클래스 =" + authentication.getPrincipal().getClass());
+//        //dasf
+//
+//        User user = (User) authentication.getPrincipal(); // UserDetails 상속 객체라면
+//
+//        LoginResponseDto response = LoginResponseDto.builder()
+//                .grantType("Bearer")
+//                .accessToken(accessToken)
+//                .refreshToken(refreshToken)
+//                .userId(user.getId())
+//                .email(user.getEmail())
+//                .name(user.getName())
+//                .build();
+//
+//        return ResponseEntity.ok(response);
+//    }
+//}
