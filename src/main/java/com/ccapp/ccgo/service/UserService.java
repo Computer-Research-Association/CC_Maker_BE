@@ -1,4 +1,4 @@
-package com.ccapp.ccgo.user;
+package com.ccapp.ccgo.service;
 
 import com.ccapp.ccgo.dto.UserRequestDto;
 import com.ccapp.ccgo.dto.UserResponseDto;
@@ -6,6 +6,7 @@ import com.ccapp.ccgo.dto.UserMapper;
 import com.ccapp.ccgo.exception.CustomException;
 import com.ccapp.ccgo.jwt.JwtProvider;
 import com.ccapp.ccgo.repository.UserRepository;
+import com.ccapp.ccgo.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;

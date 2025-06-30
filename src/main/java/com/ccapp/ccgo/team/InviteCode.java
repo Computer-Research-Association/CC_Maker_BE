@@ -32,4 +32,16 @@ public class InviteCode {
 
     // 초대코드 유효 기간 (생성 후 +1시간)
     private LocalDateTime expiresAt;
+
+    //자동 1시간 설정
+    @PrePersist
+    public void prePersist() {
+        if (this.expiresAt == null) {
+            this.expiresAt = LocalDateTime.now().plusHours(1);
+        }
+    }
+    // 코드 유효성 (null 안전성 포함)
+    public boolean isExpired() {
+        return expiresAt == null || LocalDateTime.now().isAfter(expiresAt);
+    }
 }

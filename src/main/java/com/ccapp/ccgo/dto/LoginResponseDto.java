@@ -12,4 +12,9 @@ public class LoginResponseDto {
     private Long userId;
     private String email;
     private String name;
+    private String role;
+
+    //이 정보가 필요할지는 고민해봐야한다.
+    private Long teamId;
+    private String teamName;
 }
