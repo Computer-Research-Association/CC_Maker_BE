@@ -60,35 +60,3 @@ public class AuthController {
     }
 }
 
-
-
-//    @PostMapping("/login")
-//    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto requestDto) {
-//        System.out.println("로그인 요청 도착: " + requestDto.getEmail()+" "+ requestDto.getPassword());
-//        Authentication authentication = authenticationManager.authenticate(
-//                new UsernamePasswordAuthenticationToken(
-//                        requestDto.getEmail(), requestDto.getPassword()
-//                )
-//        );
-//
-//        String accessToken = jwtProvider.createAccessToken(authentication);
-//        String refreshToken = jwtProvider.createRefreshToken(authentication);
-//
-//
-//        System.out.println("Principal 클래스 =" + authentication.getPrincipal().getClass());
-//        //dasf
-//
-//        User user = (User) authentication.getPrincipal(); // UserDetails 상속 객체라면
-//
-//        LoginResponseDto response = LoginResponseDto.builder()
-//                .grantType("Bearer")
-//                .accessToken(accessToken)
-//                .refreshToken(refreshToken)
-//                .userId(user.getId())
-//                .email(user.getEmail())
-//                .name(user.getName())
-//                .build();
-//
-//        return ResponseEntity.ok(response);
-//    }
-//}
