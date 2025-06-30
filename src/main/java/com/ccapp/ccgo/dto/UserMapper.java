@@ -1,7 +1,7 @@
 package com.ccapp.ccgo.dto;
 
 
-import com.ccapp.ccgo.User;
+import com.ccapp.ccgo.user.User;
 
 public class UserMapper {
 
