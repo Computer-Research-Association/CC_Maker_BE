@@ -47,5 +47,8 @@ public class User {
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
+
+    @Column(nullable = false,name = "role")
+    private String role;
 }
 
