@@ -13,6 +13,7 @@ public class UserMapper {
                 .password(encodedPassword)
                 .name(dto.getName())
                 .gender(dto.getGender())
+                .role(dto.getRole())
                 .birthdate(dto.getBirthdate())
                 .build();
     }
