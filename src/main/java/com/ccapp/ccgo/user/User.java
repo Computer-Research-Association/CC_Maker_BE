@@ -1,54 +1,58 @@
 package com.ccapp.ccgo.user;
 
 import jakarta.persistence.*;
-import lombok.*;
+        import lombok.*;
 
-import java.time.LocalDate;
+        import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * 사용자 정보를 담는 엔티티
+ * - 시스템 전체 사용자 관리
+ * - 팀 소속 여부는 TeamMember 엔티티에서 관리
+ */
 @Entity
-@Table(name = "users")  // DB 테이블 이름
+@Table(name = "users")
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA가 사용할 기본 생성자
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 public class User {
 
-    // 유저 아이디
+    // PK - 사용자 ID
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // PK 자동으로 1씩 증가
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 유저 이메일 (중복 불가)
+    // 이메일 (회원가입 아이디 역할), UNIQUE
     @Column(nullable = false, unique = true)
     private String email;
 
-    // 유저 패스워드
+    // 비밀번호
     @Column(nullable = false)
     private String password;
 
-    // 유저 이름
+    // 사용자 이름
     private String name;
 
     // 생년월일 (nullable 허용)
     @Column(name = "birthdate")
     private LocalDate birthdate;
 
-    // 성별 (예: "MALE", "FEMALE" 문자열로 저장)
+    // 성별 (e.g. "MALE", "FEMALE")
     @Column(name = "gender")
     private String gender;
 
-    // 데이터 입력받은 시간 저장
+    // 회원 가입 시각
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    // 저장되기 직전에 createdAt을 자동으로 현재 시간으로 세팅
+
+    // 회원 가입 시 자동으로 현재 시간 설정
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
-
-    @Column(nullable = false,name = "role")
-    private String role;
 }
+
 

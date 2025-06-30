@@ -5,6 +5,7 @@ import com.ccapp.ccgo.dto.UserResponseDto;
 import com.ccapp.ccgo.dto.UserMapper;
 import com.ccapp.ccgo.exception.CustomException;
 import com.ccapp.ccgo.jwt.JwtProvider;
+import com.ccapp.ccgo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;

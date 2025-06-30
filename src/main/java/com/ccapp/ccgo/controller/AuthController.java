@@ -1,6 +1,8 @@
 package com.ccapp.ccgo.controller;
 
+import com.ccapp.ccgo.dto.TeamMemberResponseDto;
 import com.ccapp.ccgo.user.User;
+import com.ccapp.ccgo.team.Team;
 import com.ccapp.ccgo.dto.LoginRequestDto;
 import com.ccapp.ccgo.dto.LoginResponseDto;
 import com.ccapp.ccgo.jwt.JwtProvider;
@@ -50,7 +52,6 @@ public class AuthController {
                     .userId(user.getId())
                     .email(user.getEmail())
                     .name(user.getName())
-                    .role(user.getRole())
                     .build();
             System.out.print("3");
             return ResponseEntity.ok(response);
