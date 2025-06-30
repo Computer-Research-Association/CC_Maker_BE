@@ -1,82 +1,50 @@
 package com.ccapp.ccgo.jwt;
-
-
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.security.core.Authentication;
-
-
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.stream.Collectors;
-
+import lombok.extern.slf4j.Slf4j;
+@Slf4j
 @Component
 public class JwtProvider {
 
-    private final Key key;
+    private Key key;
+
+    private final String secret;
     private final long accessTokenExpiration;
     private final long refreshTokenExpiration;
 
-    private final long expirationTime = 1000L * 60 * 60 * 24; // 24시간
-
-
-    //이 부분 보안상 취약할걸로 예상 수정 필요
     public JwtProvider(@Value("${jwt.secret}") String secret,
                        @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
                        @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.secret = secret;
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
-    // ✅ 토큰 생성
-    public String generateToken(String email) {
-        return Jwts.builder()
-                .setSubject(email)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
-    }
-
-    // ✅ 토큰 유효성 검사
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            // 여기서 로그를 남기는 것도 좋습니다.
-            return false;
+    @PostConstruct
+    public void init() {
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            log.warn("JWT 시크릿 키 길이가 너무 짧습니다. 최소 256비트(32바이트) 이상 권장합니다.");
         }
-    }
-
-    // ✅ 토큰에서 이메일 추출
-    public String getEmailFromToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+        this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String createAccessToken(Authentication authentication) {
         String username = authentication.getName();
-
         String roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
-
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpiration);
-
         return Jwts.builder()
                 .setSubject(username)
                 .claim("roles", roles)
@@ -89,7 +57,6 @@ public class JwtProvider {
     public String createRefreshToken(Authentication authentication) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshTokenExpiration);
-
         return Jwts.builder()
                 .setSubject(authentication.getName())
                 .setIssuedAt(now)
@@ -98,5 +65,25 @@ public class JwtProvider {
                 .compact();
     }
 
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("JWT 유효성 검사 실패: {}", e.getMessage());
+            return false;
+        }
+    }
 
+    public String getEmailFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
 }

@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@CrossOrigin(origins = "*") // 모든 요청 허용 (React Native용)
+// @CrossOrigin 제거, SecurityConfig에서 CORS 관리 권장
 public class UserController {
 
     private final UserService userService;

@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -10,7 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.authentication.BadCredentialsException;
 
 import java.util.Map;
-
+@Slf4j
 @RestControllerAdvice
 //다양한 에러 처리 클래스
 public class GlobalExceptionHandler {
@@ -24,6 +25,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleException(Exception ex) {
+        log.error("서버 오류 발생", ex);
         return ResponseEntity
                 .status(500)
                 .body(Map.of("message", "서버 오류가 발생했습니다."));

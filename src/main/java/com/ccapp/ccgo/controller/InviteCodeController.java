@@ -25,6 +25,7 @@ public class InviteCodeController {
 
         User user = userDetails.getUser();
 
+        // 초대코드 생성 서비스 호출
         InviteCode inviteCode = inviteCodeService.createInviteCode(user);
 
         InviteCodeCreateResponseDto responseDto = InviteCodeCreateResponseDto.builder()
