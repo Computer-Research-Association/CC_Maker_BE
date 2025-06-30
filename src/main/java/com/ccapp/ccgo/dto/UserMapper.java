@@ -12,7 +12,6 @@ public class UserMapper {
                 .password(encodedPassword)
                 .name(dto.getName())
                 .gender(dto.getGender())
-                .role(dto.getRole())
                 .birthdate(dto.getBirthdate())
                 .build();
     }
@@ -25,7 +24,6 @@ public class UserMapper {
                 .name(user.getName())
                 .gender(user.getGender())
                 .birthdate(user.getBirthdate())
-                .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
