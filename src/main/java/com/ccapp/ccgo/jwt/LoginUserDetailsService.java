@@ -1,7 +1,7 @@
 package com.ccapp.ccgo.jwt;
 
-import com.ccapp.ccgo.User;
-import com.ccapp.ccgo.UserRepository;
+import com.ccapp.ccgo.user.User;
+import com.ccapp.ccgo.user.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

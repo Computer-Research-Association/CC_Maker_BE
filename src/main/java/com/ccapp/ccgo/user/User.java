@@ -1,4 +1,4 @@
-package com.ccapp.ccgo;
+package com.ccapp.ccgo.user;
 
 import jakarta.persistence.*;
 import lombok.*;

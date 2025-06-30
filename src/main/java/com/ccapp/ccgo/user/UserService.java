@@ -1,4 +1,4 @@
-package com.ccapp.ccgo;
+package com.ccapp.ccgo.user;
 
 import com.ccapp.ccgo.dto.UserRequestDto;
 import com.ccapp.ccgo.dto.UserResponseDto;

@@ -1,10 +1,9 @@
 package com.ccapp.ccgo.controller;
 
-import com.ccapp.ccgo.User;
+import com.ccapp.ccgo.user.User;
 import com.ccapp.ccgo.dto.LoginRequestDto;
 import com.ccapp.ccgo.dto.LoginResponseDto;
 import com.ccapp.ccgo.jwt.JwtProvider;
-import com.ccapp.ccgo.jwt.JwtToken;
 import com.ccapp.ccgo.jwt.LoginUserDetails;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,7 +15,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")

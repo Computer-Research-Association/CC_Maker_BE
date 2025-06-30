@@ -1,6 +1,6 @@
 package com.ccapp.ccgo.controller;
 
-import com.ccapp.ccgo.UserService;
+import com.ccapp.ccgo.user.UserService;
 import com.ccapp.ccgo.dto.UserRequestDto;
 import com.ccapp.ccgo.dto.UserResponseDto;
 import org.springframework.http.HttpStatus;
