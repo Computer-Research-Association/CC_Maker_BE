@@ -40,9 +40,11 @@ public class AuthController {
             String accessToken = jwtProvider.createAccessToken(authentication);
             String refreshToken = jwtProvider.createRefreshToken(authentication);
 
+            System.out.print("1");
             LoginUserDetails userDetails = (LoginUserDetails) authentication.getPrincipal();
             User user = userDetails.getUser(); // ✅ 안전하게 User 꺼냄
 
+            System.out.print("2");
             LoginResponseDto response = LoginResponseDto.builder()
                     .grantType("Bearer")
                     .accessToken(accessToken)
@@ -50,8 +52,9 @@ public class AuthController {
                     .userId(user.getId())
                     .email(user.getEmail())
                     .name(user.getName())
+                    .role(user.getRole())
                     .build();
-
+            System.out.print("3");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("로그인 중 오류 발생", e);

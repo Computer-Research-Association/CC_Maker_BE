@@ -14,5 +14,6 @@ public class UserResponseDto {
     private String gender;
     private LocalDate birthdate;
     private LocalDateTime createdAt;
+    private String role;
 }
 
