@@ -66,10 +66,11 @@ public class AuthController {
                 Team team = new Team();
                 team.setTeamName(user.getName() + "의 팀"); // 원하는 네이밍 규칙 사용
                 team.setCreatedAt(LocalDateTime.now());
+                team.setCreatedBy(user.getId());
                 teamRepository.save(team);
 
                 // 2. 팀장 본인을 팀원으로 등록
-                team.setCreatedBy(user.getId());
+
                 TeamMember teamMember = new TeamMember();
                 teamMember.setUser(user);
                 teamMember.setTeam(team);
