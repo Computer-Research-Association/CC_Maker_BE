@@ -68,7 +68,7 @@ public class InviteCodeService {
     public InviteCode createInviteCode(User user) {
         var teamMember = teamMemberRepository.findByUserAndIsActiveTrue(user)
                 .orElseThrow(() -> new CustomException("팀 소속이 아닙니다.", HttpStatus.BAD_REQUEST));
-        if (!"TEAM_LEADER".equals(teamMember.getRole())) {
+        if (!"TeamLeader".equals(teamMember.getRole())) {
             throw new CustomException("팀장만 초대코드를 생성할 수 있습니다.", HttpStatus.FORBIDDEN);
         }
 

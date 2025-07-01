@@ -34,7 +34,7 @@ public class TeamMember {
 
     // FK - 팀 ID
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_id", nullable = false)
+    @JoinColumn(name = "team_id")
     private Team team;
 
     // FK - 유저 ID
