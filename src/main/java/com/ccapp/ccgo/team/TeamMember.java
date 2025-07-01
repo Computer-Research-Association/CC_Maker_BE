@@ -52,4 +52,5 @@ public class TeamMember {
     // Soft Delete 여부 (true = 소속 중, false = 탈퇴)
     @Column(nullable = false)
     private boolean isActive;
+
 }
