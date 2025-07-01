@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.controller;
 
+import com.ccapp.ccgo.dto.TokenResponseDto;
 import com.ccapp.ccgo.jwt.LoginUserDetailsService;
 import com.ccapp.ccgo.repository.TeamMemberRepository;
 import com.ccapp.ccgo.team.Team;
@@ -94,6 +95,8 @@ public class AuthController {
                     .teamId(teamMember.getTeam().getTeamId())
                     .teamName(teamMember.getTeam().getTeamName())
                     .role(teamMember.getRole())
+                    .accessToken(accessToken)         // 추가
+                    .refreshToken(refreshToken)
                     .build();
 
             return ResponseEntity.ok()
@@ -132,7 +135,7 @@ public class AuthController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body("토큰이 재발급 되었습니다.");
+                .body(new TokenResponseDto(newAccessToken, newRefreshToken));
     }
 
     /**
