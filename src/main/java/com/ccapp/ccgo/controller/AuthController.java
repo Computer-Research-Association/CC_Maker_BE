@@ -70,7 +70,6 @@ public class AuthController {
                 teamRepository.save(team);
 
                 // 2. 팀장 본인을 팀원으로 등록
-
                 TeamMember teamMember = new TeamMember();
                 teamMember.setUser(user);
                 teamMember.setTeam(team);
