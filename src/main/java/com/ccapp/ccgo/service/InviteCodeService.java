@@ -4,9 +4,11 @@ import com.ccapp.ccgo.common.Role;
 import com.ccapp.ccgo.exception.CustomException;
 import com.ccapp.ccgo.repository.InviteCodeRepository;
 import com.ccapp.ccgo.repository.TeamMemberRepository;
+import com.ccapp.ccgo.repository.TeamRepository;
 import com.ccapp.ccgo.team.InviteCode;
 import com.ccapp.ccgo.team.Team;
 import com.ccapp.ccgo.team.TeamMember;
+import lombok.NonNull;
 import org.springframework.scheduling.annotation.Scheduled;
 import com.ccapp.ccgo.user.User;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,8 @@ public class InviteCodeService {
 
     private final InviteCodeRepository inviteCodeRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamRepository teamRepository;  // 팀 저장소 추가
+
 
     private static final String CODE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 8;
@@ -96,5 +100,21 @@ public class InviteCodeService {
     @Transactional
     public void deleteExpiredInviteCodes() {
         inviteCodeRepository.deleteByExpiresAtBefore(LocalDateTime.now());
+    }
+
+    @Transactional
+    public void saveTeamName(@NonNull User user, @NonNull String teamName) {
+        // 사용자 팀 멤버 조회
+        TeamMember teamMember = teamMemberRepository.findByUserAndIsActiveTrue(user)
+                .orElseThrow(() -> new CustomException("팀 소속이 아닙니다.", HttpStatus.BAD_REQUEST));
+
+        // 팀장만 팀 이름 변경 가능 (원한다면 이 조건 제거 가능)
+        if (teamMember.getRole() != Role.LEADER) {
+            throw new CustomException("팀장만 팀 이름을 변경할 수 있습니다.", HttpStatus.FORBIDDEN);
+        }
+
+        Team team = teamMember.getTeam();
+        team.setTeamName(teamName);  // 팀 이름 변경
+        teamRepository.save(team);
     }
 }
