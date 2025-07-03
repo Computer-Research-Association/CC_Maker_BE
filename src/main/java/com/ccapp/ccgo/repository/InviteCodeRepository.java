@@ -1,6 +1,7 @@
 package com.ccapp.ccgo.repository;
 
 import com.ccapp.ccgo.team.InviteCode;
+import com.ccapp.ccgo.team.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
@@ -22,4 +23,8 @@ public interface InviteCodeRepository extends JpaRepository<InviteCode, String> 
 
     // 만료 코드 삭제
     void deleteByExpiresAtBefore(LocalDateTime now);
+
+    // 특정 팀의 기존 초대코드 삭제
+    void deleteByTeam(Team team);
+
 }

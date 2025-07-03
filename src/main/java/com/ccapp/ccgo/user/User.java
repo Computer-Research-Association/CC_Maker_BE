@@ -1,9 +1,10 @@
 package com.ccapp.ccgo.user;
 
+import com.ccapp.ccgo.common.Role;
 import jakarta.persistence.*;
-        import lombok.*;
+import lombok.*;
 
-        import java.time.LocalDate;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -48,15 +49,20 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    //role
+    //팀내 역할 (팀장/팀원)
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role;
+    private Role role;
 
     // 회원 가입 시 자동으로 현재 시간 설정
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
+
+    //관심사 설문조사 완료여부
+    @Column(name = "is_interest_completed", nullable = false)
+    private boolean isInterestCompleted = false;
 }
 
 

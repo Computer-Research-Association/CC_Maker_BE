@@ -35,6 +35,8 @@ public class InviteCodeController {
         User user = userDetails.getUser();
 
         System.out.print("코드 만듭니당");
+        System.out.println("ROLE: " + user.getRole());
+
         // 초대코드 생성 서비스 호출
         InviteCode inviteCode = inviteCodeService.createInviteCode(user);
         System.out.print("만들었어용");

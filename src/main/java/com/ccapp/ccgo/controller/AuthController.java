@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.controller;
 
+import com.ccapp.ccgo.common.Role;
 import com.ccapp.ccgo.dto.TokenResponseDto;
 import com.ccapp.ccgo.jwt.LoginUserDetailsService;
 import com.ccapp.ccgo.repository.TeamMemberRepository;
@@ -65,7 +66,7 @@ public class AuthController {
             Optional<TeamMember> existingTeamMember = teamMemberRepository.findByUserAndIsActiveTrue(user);
 
             if (existingTeamMember.isEmpty()) {
-                if (user.getRole().equals("TeamLeader")) {
+                if (user.getRole().equals(Role.LEADER)) {
                     // 팀 생성 및 팀장 등록
                     Team team = new Team();
                     team.setTeamName(user.getName() + "의 팀");
@@ -76,18 +77,18 @@ public class AuthController {
                     TeamMember teamMember = new TeamMember();
                     teamMember.setUser(user);
                     teamMember.setTeam(team);
-                    teamMember.setRole("TeamLeader");
+                    teamMember.setRole(Role.LEADER);
                     teamMember.setActive(true);
                     teamMember.setJoinedAt(LocalDateTime.now());
                     teamMemberRepository.save(teamMember);
 
                     log.info("🆕 새 팀 생성 및 팀장 등록 완료");
-                } else if (user.getRole().equals("TeamMember")) {
+                } else if (user.getRole().equals(Role.MEMBER)) {
                     // 팀원 등록 (팀 없음)
                     TeamMember teamMember = new TeamMember();
                     teamMember.setUser(user);
                     teamMember.setTeam(null);  // 나중에 초대코드로 팀이 지정될 예정
-                    teamMember.setRole("TeamMember");
+                    teamMember.setRole(Role.MEMBER);
                     teamMember.setActive(true);
                     teamMember.setJoinedAt(LocalDateTime.now());
                     teamMemberRepository.save(teamMember);
@@ -110,7 +111,7 @@ public class AuthController {
                     .name(user.getName())
                     .teamId(team != null ? team.getTeamId() : null)
                     .teamName(team != null ? team.getTeamName() : null)
-                    .role(teamMember.getRole())
+                    .role(teamMember.getRole().name())
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .build();

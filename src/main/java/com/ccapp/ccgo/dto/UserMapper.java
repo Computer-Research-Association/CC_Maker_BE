@@ -29,7 +29,7 @@ public class UserMapper {
                 .gender(user.getGender())
                 .birthdate(user.getBirthdate())
                 .createdAt(user.getCreatedAt())
-                .role(user.getRole())
+                .role(user.getRole().name())
                 .build();
     }
 }

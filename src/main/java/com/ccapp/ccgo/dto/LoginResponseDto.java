@@ -17,4 +17,6 @@ public class LoginResponseDto {
     //이 정보가 필요할지는 고민해봐야한다.
     private Long teamId;
     private String teamName;
+
+    private boolean isInterestCompleted;  // 기본값 false
 }
