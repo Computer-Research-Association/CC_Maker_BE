@@ -19,7 +19,12 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     // 현재 소속 중인 팀 찾기 (Soft Delete 고려)
     Optional<TeamMember> findByUserAndIsActiveTrue(User user);
 
+    //teammember에서 유저 조회
+    Optional<TeamMember> findByUser(User user);
 
     // 팀별 멤버 목록
     List<TeamMember> findAllByTeamAndIsActiveTrue(Team team);
+
+    // 이미 특정 유저가 특정 팀 인지 확인
+    boolean existsByUserAndTeam(User user, Team team);
 }
