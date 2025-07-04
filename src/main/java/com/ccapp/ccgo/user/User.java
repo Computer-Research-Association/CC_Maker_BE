@@ -61,7 +61,7 @@ public class User {
     }
 
     //관심사 설문조사 완료여부
-    @Column(name = "is_interest_completed", nullable = false)
+    @Column(name = "test_completed", nullable = false)
     private boolean isInterestCompleted = false;
 }
 
