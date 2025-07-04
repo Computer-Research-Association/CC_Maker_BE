@@ -80,6 +80,7 @@ public class AuthController {
                     teamMember.setRole(Role.LEADER);
                     teamMember.setActive(true);
                     teamMember.setJoinedAt(LocalDateTime.now());
+                    teamMember.setUserName(user.getName());
                     teamMemberRepository.save(teamMember);
 
                     log.info("🆕 새 팀 생성 및 팀장 등록 완료");
@@ -91,6 +92,7 @@ public class AuthController {
                     teamMember.setRole(Role.MEMBER);
                     teamMember.setActive(true);
                     teamMember.setJoinedAt(LocalDateTime.now());
+                    teamMember.setUserName(user.getName());
                     teamMemberRepository.save(teamMember);
 
                     log.info("🆕 팀원 등록 완료 (팀 없음)");

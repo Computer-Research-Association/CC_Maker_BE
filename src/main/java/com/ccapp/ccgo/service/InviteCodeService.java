@@ -60,6 +60,7 @@ public class InviteCodeService {
                 .role(Role.MEMBER)
                 .isActive(true)
                 .joinedAt(LocalDateTime.now())
+                .userName(user.getName())
                 .build();
 
         teamMemberRepository.save(newMember);
