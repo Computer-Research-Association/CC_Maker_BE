@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.dto;
 
+import com.ccapp.ccgo.common.Role;
 import lombok.Getter;
 import java.time.LocalDate;
 import jakarta.validation.constraints.*;
@@ -16,5 +17,5 @@ public class UserRequestDto {
     private String name;
     private String gender;
     private LocalDate birthdate;
-    private String role;
+    private Role role;
 }

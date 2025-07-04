@@ -1,7 +1,14 @@
 package com.ccapp.ccgo.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class InviteCodeJoinResponseDto {
-    private Long teamId;
     private String teamName;
-    private String role; // TEAM_MEMBER
 }

@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.controller;
 
+import com.ccapp.ccgo.common.Role;
 import com.ccapp.ccgo.dto.TokenResponseDto;
 import com.ccapp.ccgo.jwt.LoginUserDetailsService;
 import com.ccapp.ccgo.repository.TeamMemberRepository;
@@ -20,6 +21,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpHeaders;
 
@@ -40,8 +42,9 @@ public class AuthController {
     private final LoginUserDetailsService loginUserDetailsService;
     private final TeamRepository teamRepository;
 
+    //@authenticatedPrincipal UserDetails authenticatedPrincipal
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDto requestDto) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDto requestDto ) {
         log.info("로그인 요청 받음: {}", requestDto.getEmail());
         log.info("로그인 요청 받음: {}", requestDto.getPassword());
 
@@ -61,41 +64,55 @@ public class AuthController {
 
             // ✅ 팀이 없으면 팀 생성 + 팀장 등록
             Optional<TeamMember> existingTeamMember = teamMemberRepository.findByUserAndIsActiveTrue(user);
-            if (existingTeamMember.isEmpty() && user.getRole().equals("TeamLeader")) {
 
-                // 1. 새 팀 생성
-                Team team = new Team();
-                team.setTeamName(user.getName() + "의 팀"); // 원하는 네이밍 규칙 사용
-                team.setCreatedAt(LocalDateTime.now());
-                team.setCreatedBy(user.getId());
-                teamRepository.save(team);
+            if (existingTeamMember.isEmpty()) {
+                if (user.getRole().equals(Role.LEADER)) {
+                    // 팀 생성 및 팀장 등록
+                    Team team = new Team();
+                    team.setTeamName(user.getName() + "의 팀");
+                    team.setCreatedAt(LocalDateTime.now());
+                    team.setCreatedBy(user.getId());
+                    teamRepository.save(team);
 
-                // 2. 팀장 본인을 팀원으로 등록
-                TeamMember teamMember = new TeamMember();
-                teamMember.setUser(user);
-                teamMember.setTeam(team);
-                teamMember.setRole("TeamLeader");  // 또는 enum 등
-                teamMember.setActive(true);
-                teamMember.setJoinedAt(LocalDateTime.now());
-                teamMemberRepository.save(teamMember);
+                    TeamMember teamMember = new TeamMember();
+                    teamMember.setUser(user);
+                    teamMember.setTeam(team);
+                    teamMember.setRole(Role.LEADER);
+                    teamMember.setActive(true);
+                    teamMember.setJoinedAt(LocalDateTime.now());
+                    teamMemberRepository.save(teamMember);
 
-                log.info("🆕 새 팀 생성 및 팀장 등록 완료");
+                    log.info("🆕 새 팀 생성 및 팀장 등록 완료");
+                } else if (user.getRole().equals(Role.MEMBER)) {
+                    // 팀원 등록 (팀 없음)
+                    TeamMember teamMember = new TeamMember();
+                    teamMember.setUser(user);
+                    teamMember.setTeam(null);  // 나중에 초대코드로 팀이 지정될 예정
+                    teamMember.setRole(Role.MEMBER);
+                    teamMember.setActive(true);
+                    teamMember.setJoinedAt(LocalDateTime.now());
+                    teamMemberRepository.save(teamMember);
+
+                    log.info("🆕 팀원 등록 완료 (팀 없음)");
+                }
             }
 
             // ✅ 다시 조회 (혹은 Optional.get으로 바로 사용 가능)
             TeamMember teamMember = teamMemberRepository.findByUserAndIsActiveTrue(user)
-                    .orElseThrow(() -> new RuntimeException("소속된 팀이 없습니다."));
+                    .orElseThrow(() -> new RuntimeException("TeamMember 레코드가 없습니다."));
 
             HttpHeaders headers = createTokenCookies(accessToken, refreshToken);
+
+            Team team = teamMember.getTeam();
 
             LoginResponseDto response = LoginResponseDto.builder()
                     .userId(user.getId())
                     .email(user.getEmail())
                     .name(user.getName())
-                    .teamId(teamMember.getTeam().getTeamId())
-                    .teamName(teamMember.getTeam().getTeamName())
-                    .role(teamMember.getRole())
-                    .accessToken(accessToken)         // 추가
+                    .teamId(team != null ? team.getTeamId() : null)
+                    .teamName(team != null ? team.getTeamName() : null)
+                    .role(teamMember.getRole().name())
+                    .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .build();
 
@@ -104,7 +121,7 @@ public class AuthController {
                     .body(response);
 
         } catch (BadCredentialsException e) {
-            log.error("❌ 로그인 실패: 자격 증명 오류", e);
+
             return ResponseEntity.status(401).body(Map.of("message", "이메일 또는 비밀번호가 잘못되었습니다."));
         } catch (RuntimeException e) {
             log.error("❌ 로그인 중 런타임 예외", e);

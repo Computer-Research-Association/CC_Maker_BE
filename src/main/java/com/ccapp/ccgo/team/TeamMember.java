@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.team;
 
+import com.ccapp.ccgo.common.Role;
 import com.ccapp.ccgo.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,7 +35,7 @@ public class TeamMember {
 
     // FK - 팀 ID
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_id", nullable = false)
+    @JoinColumn(name = "team_id")
     private Team team;
 
     // FK - 유저 ID
@@ -43,8 +44,9 @@ public class TeamMember {
     private User user;
 
     // 팀 내 역할 ("TEAM_LEADER" or "TEAM_MEMBER")
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role;
+    private Role role;
 
     // 팀 가입 일시
     private LocalDateTime joinedAt;
