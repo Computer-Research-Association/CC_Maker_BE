@@ -112,7 +112,7 @@ public class InviteCodeController {
 
         // 팀 할당 및 기타 정보 설정
         teamMember.setTeam(team);
-        teamMember.setRole(Role.MEMBER); // 팀원으로 설정
+        teamMember.setRole(user.getRole()); // 유저의 역할로 설정
         teamMember.setJoinedAt(LocalDateTime.now());
         teamMember.setActive(true);
         teamMemberRepository.save(teamMember); // 업데이트 저장
