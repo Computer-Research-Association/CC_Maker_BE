@@ -27,6 +27,7 @@ import org.springframework.http.HttpHeaders;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,7 +55,6 @@ public class AuthController {
                             requestDto.getEmail(), requestDto.getPassword()
                     )
             );
-            log.info("✅ 인증 성공: {}", authentication.getName());
 
             String accessToken = jwtProvider.createAccessToken(authentication);
             String refreshToken = jwtProvider.createRefreshToken(authentication);
@@ -62,56 +62,27 @@ public class AuthController {
             User user = userDetails.getUser();
             log.info("🔍 로그인한 사용자: {}", user.getEmail());
 
-            // ✅ 팀이 없으면 팀 생성 + 팀장 등록
-            Optional<TeamMember> existingTeamMember = teamMemberRepository.findByUserAndIsActiveTrue(user);
+            // 유저가 활성화된 팀멤버 목록 조회
+            List<TeamMember> teamMembers = teamMemberRepository.findAllByUserAndIsActiveTrue(user);
 
-            if (existingTeamMember.isEmpty()) {
-                if (user.getRole().equals(Role.LEADER)) {
-                    // 팀 생성 및 팀장 등록
-                    Team team = new Team();
-                    team.setTeamName(user.getName() + "의 팀");
-                    team.setCreatedAt(LocalDateTime.now());
-                    team.setCreatedBy(user.getId());
-                    teamRepository.save(team);
 
-                    TeamMember teamMember = new TeamMember();
-                    teamMember.setUser(user);
-                    teamMember.setTeam(team);
-                    teamMember.setRole(Role.LEADER);
-                    teamMember.setActive(true);
-                    teamMember.setJoinedAt(LocalDateTime.now());
-                    teamMemberRepository.save(teamMember);
-
-                    log.info("🆕 새 팀 생성 및 팀장 등록 완료");
-                } else if (user.getRole().equals(Role.MEMBER)) {
-                    // 팀원 등록 (팀 없음)
-                    TeamMember teamMember = new TeamMember();
-                    teamMember.setUser(user);
-                    teamMember.setTeam(null);  // 나중에 초대코드로 팀이 지정될 예정
-                    teamMember.setRole(Role.MEMBER);
-                    teamMember.setActive(true);
-                    teamMember.setJoinedAt(LocalDateTime.now());
-                    teamMemberRepository.save(teamMember);
-
-                    log.info("🆕 팀원 등록 완료 (팀 없음)");
-                }
-            }
-
-            // ✅ 다시 조회 (혹은 Optional.get으로 바로 사용 가능)
-            TeamMember teamMember = teamMemberRepository.findByUserAndIsActiveTrue(user)
-                    .orElseThrow(() -> new RuntimeException("TeamMember 레코드가 없습니다."));
+            // 팀멤버 정보를 LoginResponseDto.TeamInfo 리스트로 변환
+            List<LoginResponseDto.TeamInfo> teams = teamMembers.stream()
+                    .map(tm -> LoginResponseDto.TeamInfo.builder()
+                            .teamId(tm.getTeam().getTeamId())
+                            .teamName(tm.getTeam().getTeamName())
+                            .role(tm.getRole().name())
+                            .isSurveyCompleted(tm.isSurveyCompleted()) // 팀별 설문 완료 여부
+                            .build())
+                    .toList();
 
             HttpHeaders headers = createTokenCookies(accessToken, refreshToken);
-
-            Team team = teamMember.getTeam();
 
             LoginResponseDto response = LoginResponseDto.builder()
                     .userId(user.getId())
                     .email(user.getEmail())
                     .name(user.getName())
-                    .teamId(team != null ? team.getTeamId() : null)
-                    .teamName(team != null ? team.getTeamName() : null)
-                    .role(teamMember.getRole().name())
+                    .teams(teams)
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .build();
@@ -121,7 +92,6 @@ public class AuthController {
                     .body(response);
 
         } catch (BadCredentialsException e) {
-
             return ResponseEntity.status(401).body(Map.of("message", "이메일 또는 비밀번호가 잘못되었습니다."));
         } catch (RuntimeException e) {
             log.error("❌ 로그인 중 런타임 예외", e);

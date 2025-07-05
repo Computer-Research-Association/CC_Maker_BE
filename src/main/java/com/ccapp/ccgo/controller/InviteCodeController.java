@@ -5,8 +5,10 @@ import com.ccapp.ccgo.dto.InviteCodeCreateResponseDto;
 import com.ccapp.ccgo.dto.InviteCodeJoinRequestDto;
 import com.ccapp.ccgo.dto.InviteCodeJoinResponseDto;
 import com.ccapp.ccgo.dto.TeamRequestDto;
+import com.ccapp.ccgo.exception.CustomException;
 import com.ccapp.ccgo.repository.InviteCodeRepository;
 import com.ccapp.ccgo.repository.TeamMemberRepository;
+import com.ccapp.ccgo.repository.TeamRepository;
 import com.ccapp.ccgo.repository.UserRepository;
 import com.ccapp.ccgo.service.InviteCodeService;
 import com.ccapp.ccgo.team.InviteCode;
@@ -23,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/invitecode")
@@ -32,7 +35,9 @@ public class InviteCodeController {
     private final InviteCodeService inviteCodeService;
     private final InviteCodeRepository inviteCodeRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamRepository teamRepository;
 
+    //코드 만드는 부분
     @PostMapping("/create")
     public ResponseEntity<InviteCodeCreateResponseDto> createInviteCode(
             @AuthenticationPrincipal LoginUserDetails userDetails) {
@@ -49,10 +54,19 @@ public class InviteCodeController {
         User user = userDetails.getUser();
 
         System.out.print("코드 만듭니당");
-        System.out.println("ROLE: " + user.getRole());
+
+        List<TeamMember> teamMembers = teamMemberRepository.findAllByUserAndIsActiveTrue(user);
+
+        TeamMember teamMember = teamMembers.stream()
+                .filter(tm -> tm.getRole() == Role.LEADER)
+                .findFirst()
+                .orElseThrow(() -> new CustomException("팀장만 초대코드를 생성할 수 있습니다.", HttpStatus.FORBIDDEN));
+
+        System.out.println("여까진 됌 ");
 
         // 초대코드 생성 서비스 호출
         InviteCode inviteCode = inviteCodeService.createInviteCode(user);
+
         System.out.print("만들었어용");
         InviteCodeCreateResponseDto responseDto = InviteCodeCreateResponseDto.builder()
                 .code(inviteCode.getCode())
@@ -63,7 +77,7 @@ public class InviteCodeController {
     }
 
 
-    //시작하기를 누르면 팀 이름을 db에 저장
+    //팀 생성하기를 누르면 팀이 만들어집니당
     @PostMapping("/teamname")
     public ResponseEntity<Void> saveTeamName(
             @AuthenticationPrincipal LoginUserDetails userDetails,
@@ -73,8 +87,26 @@ public class InviteCodeController {
         }
         User user = userDetails.getUser();
         String teamName = requestDto.getTeamName();
-        // 팀 이름 저장 서비스 호출
-        inviteCodeService.saveTeamName(user, teamName);
+
+        //팀 생성 코드
+        // 팀 엔티티 생성 및 저장
+        Team team = Team.builder()
+                .teamName(teamName)
+                .createdBy(user.getId()) // 팀장 ID
+                .createdAt(LocalDateTime.now())
+                .build();
+        teamRepository.save(team);
+
+        // 팀장도 팀원으로 자동 등록
+        TeamMember teamMember = TeamMember.builder()
+                .team(team)
+                .user(user)
+                .joinedAt(LocalDateTime.now())
+                .isActive(true)
+                .role(Role.LEADER) // 팀장 역할
+                .build();
+        teamMemberRepository.save(teamMember);
+
         return ResponseEntity.ok().build();
     }
 
@@ -101,21 +133,21 @@ public class InviteCodeController {
             throw new RuntimeException("초대코드에 연결된 팀이 없습니다.");
         }
 
-        // 이미 등록된 TeamMember 가져오기
-        TeamMember teamMember = teamMemberRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("TeamMember 정보가 없습니다."));
-
-        // 이미 팀이 설정되어 있다면 중복 가입 방지
-        if (teamMember.getTeam() != null) {
-            return ResponseEntity.badRequest().body("이미 다른 팀에 가입되어 있습니다.");
+        boolean alreadyMember = teamMemberRepository.existsByUserAndTeam(user, team);
+        if (alreadyMember) {
+            return ResponseEntity.badRequest().body("이미 이 팀에 가입되어 있습니다.");
         }
 
-        // 팀 할당 및 기타 정보 설정
-        teamMember.setTeam(team);
-        teamMember.setRole(user.getRole()); // 유저의 역할로 설정
-        teamMember.setJoinedAt(LocalDateTime.now());
-        teamMember.setActive(true);
-        teamMemberRepository.save(teamMember); // 업데이트 저장
+        // 새 TeamMember 생성 및 저장
+        TeamMember newMember = TeamMember.builder()
+                .user(user)
+                .team(team)
+                .joinedAt(LocalDateTime.now())
+                .isActive(true)
+                .role(Role.MEMBER) // 기본 역할로 MEMBER 지정, 필요하면 변경
+                .build();
+        teamMemberRepository.save(newMember);
+
 
         return ResponseEntity.ok(new InviteCodeJoinResponseDto(team.getTeamName()));
     }

@@ -22,6 +22,9 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     //teammember에서 유저 조회
     Optional<TeamMember> findByUser(User user);
 
+    // 유저(user)에 대해 isActive가 true인 TeamMember 리스트 반환
+    List<TeamMember> findAllByUserAndIsActiveTrue(User user);
+
     // 팀별 멤버 목록
     List<TeamMember> findAllByTeamAndIsActiveTrue(Team team);
 

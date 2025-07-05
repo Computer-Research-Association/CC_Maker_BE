@@ -54,14 +54,19 @@ public class InviteCodeService {
             throw new CustomException("초대코드가 만료되었습니다.", HttpStatus.BAD_REQUEST);
         }
 
-        if (teamMemberRepository.findByUserAndIsActiveTrue(user).isPresent()) {
-            throw new CustomException("이미 팀에 소속되어 있습니다.", HttpStatus.BAD_REQUEST);
+        Team teamToJoin = code.getTeam();
+
+        // 유저가 이미 이 팀에 가입했는지 체크
+        boolean alreadyJoined = teamMemberRepository.findAllByUserAndIsActiveTrue(user).stream()
+                .anyMatch(tm -> tm.getTeam().equals(teamToJoin));
+        if (alreadyJoined) {
+            throw new CustomException("이미 이 팀에 가입되어 있습니다.", HttpStatus.BAD_REQUEST);
         }
 
         TeamMember newMember = TeamMember.builder()
                 .user(user)
-                .team(code.getTeam())
-                .role(Role.MEMBER)
+                .team(teamToJoin)
+                .role(Role.MEMBER)  // 기본 역할은 MEMBER
                 .isActive(true)
                 .joinedAt(LocalDateTime.now())
                 .build();

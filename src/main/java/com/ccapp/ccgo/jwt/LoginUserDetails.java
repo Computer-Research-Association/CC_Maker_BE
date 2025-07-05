@@ -23,11 +23,7 @@ public class LoginUserDetails implements UserDetails {
     // ✅ 기본 권한 비워둠 (나중에 ROLE_ 추가 가능)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if (user.getRole() == null) {
-            return Collections.emptyList();
-        }
-        String roleName = user.getRole().name(); // enum 이름 기반 권한
-        return List.of(new SimpleGrantedAuthority(roleName));
+        return Collections.emptyList();
     }
 
     // ✅ 로그인 시 사용할 비밀번호

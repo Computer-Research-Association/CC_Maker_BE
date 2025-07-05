@@ -73,7 +73,6 @@ public class UserService {
             user.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
         user.setName(dto.getName());
-        user.setRole(dto.getRole());
         user.setGender(dto.getGender());
         user.setBirthdate(dto.getBirthdate());
 
