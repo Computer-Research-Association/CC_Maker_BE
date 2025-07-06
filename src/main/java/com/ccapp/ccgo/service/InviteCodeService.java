@@ -8,7 +8,6 @@ import com.ccapp.ccgo.repository.TeamRepository;
 import com.ccapp.ccgo.team.InviteCode;
 import com.ccapp.ccgo.team.Team;
 import com.ccapp.ccgo.team.TeamMember;
-import lombok.NonNull;
 import org.springframework.scheduling.annotation.Scheduled;
 import com.ccapp.ccgo.user.User;
 import org.springframework.http.HttpStatus;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 import java.security.SecureRandom;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -45,45 +45,45 @@ public class InviteCodeService {
 
     //코드로팀가입
     @Transactional
-    public void joinTeamByInviteCode(User user, String inviteCode) {
-        InviteCode code = inviteCodeRepository.findById(inviteCode)
-                .orElseThrow(() -> new CustomException("초대코드가 유효하지 않습니다.", HttpStatus.BAD_REQUEST));
+    public String joinTeamByInviteCode(String code, User user) {
 
-        if (code.isExpired()) {
-            inviteCodeRepository.delete(code); // 만료된 코드는 삭제
-            throw new CustomException("초대코드가 만료되었습니다.", HttpStatus.BAD_REQUEST);
-        }
+        InviteCode inviteCode = inviteCodeRepository
+                .findByCodeAndExpiresAtAfter(code, LocalDateTime.now())
+                .orElseThrow(() -> new CustomException("초대 코드가 없거나 만료되었습니다.", HttpStatus.BAD_REQUEST));
 
-        Team teamToJoin = code.getTeam();
+        Team team = inviteCode.getTeam();
 
-        // 유저가 이미 이 팀에 가입했는지 체크
-        boolean alreadyJoined = teamMemberRepository.findAllByUserAndIsActiveTrue(user).stream()
-                .anyMatch(tm -> tm.getTeam().equals(teamToJoin));
-        if (alreadyJoined) {
+        boolean alreadyMember = teamMemberRepository.existsByUserAndTeam(user, team);
+        if (alreadyMember) {
             throw new CustomException("이미 이 팀에 가입되어 있습니다.", HttpStatus.BAD_REQUEST);
         }
-
         TeamMember newMember = TeamMember.builder()
                 .user(user)
-                .team(teamToJoin)
-                .role(Role.MEMBER)  // 기본 역할은 MEMBER
-                .isActive(true)
+                .team(team)
                 .joinedAt(LocalDateTime.now())
+                .isActive(true)
+                .role(Role.MEMBER)
                 .build();
 
         teamMemberRepository.save(newMember);
+
+        return team.getTeamName();
     }
 
-    //보안상 냅둬
+    //초대코드생성 부분
     @Transactional
     public InviteCode createInviteCode(User user) {
-        var teamMember = teamMemberRepository.findByUserAndIsActiveTrue(user)
-                .orElseThrow(() -> new CustomException("팀 소속이 아닙니다.", HttpStatus.BAD_REQUEST));
-        if (teamMember.getRole() != Role.LEADER) {
-            throw new CustomException("팀장만 초대코드를 생성할 수 있습니다.", HttpStatus.FORBIDDEN);
+        List<TeamMember> teamMembers = teamMemberRepository.findByUserAndIsActiveTrue(user);
+        if (teamMembers.isEmpty()) {
+            throw new CustomException("팀 소속이 아닙니다.", HttpStatus.BAD_REQUEST);
         }
 
-        Team team = teamMember.getTeam();
+        TeamMember leader = teamMembers.stream()
+                .filter(tm -> tm.getRole() == Role.LEADER)
+                .findFirst()
+                .orElseThrow(() -> new CustomException("팀장만 초대코드를 생성할 수 있습니다.", HttpStatus.FORBIDDEN));
+
+        Team team = leader.getTeam();
         //기존 코드 삭제
         inviteCodeRepository.deleteByTeam(team);
 
@@ -107,19 +107,28 @@ public class InviteCodeService {
         inviteCodeRepository.deleteByExpiresAtBefore(LocalDateTime.now());
     }
 
+
+
     @Transactional
-    public void saveTeamName(@NonNull User user, @NonNull String teamName) {
-        // 사용자 팀 멤버 조회
-        TeamMember teamMember = teamMemberRepository.findByUserAndIsActiveTrue(user)
-                .orElseThrow(() -> new CustomException("팀 소속이 아닙니다.", HttpStatus.BAD_REQUEST));
-
-        // 팀장만 팀 이름 변경 가능 (원한다면 이 조건 제거 가능)
-        if (teamMember.getRole() != Role.LEADER) {
-            throw new CustomException("팀장만 팀 이름을 변경할 수 있습니다.", HttpStatus.FORBIDDEN);
-        }
-
-        Team team = teamMember.getTeam();
-        team.setTeamName(teamName);  // 팀 이름 변경
+    public void createTeamWithLeader(User user, String teamName) {
+        // 팀 생성
+        Team team = Team.builder()
+                .teamName(teamName)
+                .createdBy(user.getId())
+                .createdAt(LocalDateTime.now())
+                .build();
         teamRepository.save(team);
+
+        // 팀장 등록
+        TeamMember teamMember = TeamMember.builder()
+                .team(team)
+                .user(user)
+                .joinedAt(LocalDateTime.now())
+                .isActive(true)
+                .role(Role.LEADER)
+                .build();
+        teamMemberRepository.save(teamMember);
     }
+
+
 }

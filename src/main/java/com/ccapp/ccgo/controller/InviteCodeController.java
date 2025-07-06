@@ -44,6 +44,7 @@ public class InviteCodeController {
         System.out.println("초대코드 생성 요청 들어옴");
         System.out.println("userDetails: " + userDetails);
 
+        //작동확인 주석
         if (userDetails != null) {
             System.out.println("인증된 사용자 이메일: " + userDetails.getUsername());
             System.out.println("사용자 권한: " + userDetails.getAuthorities());
@@ -52,28 +53,15 @@ public class InviteCodeController {
         }
 
         User user = userDetails.getUser();
-
         System.out.print("코드 만듭니당");
-
-        List<TeamMember> teamMembers = teamMemberRepository.findAllByUserAndIsActiveTrue(user);
-
-        TeamMember teamMember = teamMembers.stream()
-                .filter(tm -> tm.getRole() == Role.LEADER)
-                .findFirst()
-                .orElseThrow(() -> new CustomException("팀장만 초대코드를 생성할 수 있습니다.", HttpStatus.FORBIDDEN));
-
-        System.out.println("여까진 됌 ");
-
-        // 초대코드 생성 서비스 호출
         InviteCode inviteCode = inviteCodeService.createInviteCode(user);
-
-        System.out.print("만들었어용");
         InviteCodeCreateResponseDto responseDto = InviteCodeCreateResponseDto.builder()
                 .code(inviteCode.getCode())
                 .expiresAt(inviteCode.getExpiresAt())
                 .build();
-        System.out.print("무슨 dto생성해용");
+
         return ResponseEntity.ok(responseDto);
+
     }
 
 
@@ -83,31 +71,14 @@ public class InviteCodeController {
             @AuthenticationPrincipal LoginUserDetails userDetails,
             @RequestBody TeamRequestDto requestDto) {
         if (userDetails == null) {
-            return ResponseEntity.status(401).build();  // 인증 정보 없으면 401 반환
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+
         User user = userDetails.getUser();
-        String teamName = requestDto.getTeamName();
-
-        //팀 생성 코드
-        // 팀 엔티티 생성 및 저장
-        Team team = Team.builder()
-                .teamName(teamName)
-                .createdBy(user.getId()) // 팀장 ID
-                .createdAt(LocalDateTime.now())
-                .build();
-        teamRepository.save(team);
-
-        // 팀장도 팀원으로 자동 등록
-        TeamMember teamMember = TeamMember.builder()
-                .team(team)
-                .user(user)
-                .joinedAt(LocalDateTime.now())
-                .isActive(true)
-                .role(Role.LEADER) // 팀장 역할
-                .build();
-        teamMemberRepository.save(teamMember);
+        inviteCodeService.createTeamWithLeader(user, requestDto.getTeamName());
 
         return ResponseEntity.ok().build();
+
     }
 
     //팀원이 코드를 보냈으면 처리
@@ -120,36 +91,11 @@ public class InviteCodeController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 정보가 없습니다.");
         }
 
-        String code = requestDto.getInviteCode();
         User user = userDetails.getUser();
+        System.out.println("1. 컨트롤러 진입");
+        String teamName = inviteCodeService.joinTeamByInviteCode(requestDto.getInviteCode(), user);
 
-        // 유효한 초대 코드인지 확인
-        InviteCode inviteCode = inviteCodeRepository
-                .findByCodeAndExpiresAtAfter(code, LocalDateTime.now())
-                .orElseThrow(() -> new RuntimeException("초대 코드가 없거나 만료되었습니다."));
-
-        Team team = inviteCode.getTeam();
-        if (team == null) {
-            throw new RuntimeException("초대코드에 연결된 팀이 없습니다.");
-        }
-
-        boolean alreadyMember = teamMemberRepository.existsByUserAndTeam(user, team);
-        if (alreadyMember) {
-            return ResponseEntity.badRequest().body("이미 이 팀에 가입되어 있습니다.");
-        }
-
-        // 새 TeamMember 생성 및 저장
-        TeamMember newMember = TeamMember.builder()
-                .user(user)
-                .team(team)
-                .joinedAt(LocalDateTime.now())
-                .isActive(true)
-                .role(Role.MEMBER) // 기본 역할로 MEMBER 지정, 필요하면 변경
-                .build();
-        teamMemberRepository.save(newMember);
-
-
-        return ResponseEntity.ok(new InviteCodeJoinResponseDto(team.getTeamName()));
+        return ResponseEntity.ok(new InviteCodeJoinResponseDto(teamName));
     }
 
 
