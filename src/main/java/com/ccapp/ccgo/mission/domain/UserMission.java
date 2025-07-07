@@ -1,4 +1,4 @@
-package com.ccapp.ccgo.mission;
+package com.ccapp.ccgo.mission.domain;
 
 import com.ccapp.ccgo.common.MissionStatus;
 import com.ccapp.ccgo.user.User;

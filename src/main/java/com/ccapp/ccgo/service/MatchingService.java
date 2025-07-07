@@ -37,13 +37,15 @@ public class MatchingService {
         // 해당 팀에 소속된 팀원 전체 가져옴
         // 팀원이 없다면 (비어있다면) IllegalArgumentException
         List<TeamMember> members = teamMemberRepository.findByTeam_TeamIdAndIsActiveTrue(teamId);
-        Map<Long, TeamMember> memberMap = members.stream()
-                .collect(Collectors.toMap(tm -> tm.getUser().getId(), tm -> tm));
-
 
         if (members.isEmpty()) {
             throw new IllegalArgumentException("해당 팀(" + teamId + ")에 유저가 없습니다.");
         }
+
+        Map<Long, TeamMember> memberMap = members.stream()
+                .collect(Collectors.toMap(tm -> tm.getUser().getId(), tm -> tm));
+
+
 
         Team team = members.get(0).getTeam();
 
@@ -222,7 +224,7 @@ public class MatchingService {
             totalSimilarity += similarity;
         }
 
-        double similarityRate = (double) totalSimilarity / (5 * totalQuestions);
+        Double similarityRate = (double) totalSimilarity / (5 * totalQuestions);
         return similarityRate * 100;
     }
 

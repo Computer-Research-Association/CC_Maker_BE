@@ -1,9 +1,11 @@
 package com.ccapp.ccgo.mission.service;
 
-import com.ccapp.ccgo.mission.PartnerMission;
+import com.ccapp.ccgo.mission.domain.PartnerMission;
+import com.ccapp.ccgo.mission.dto.PartnerMissionDto;
+import jakarta.transaction.Transactional;
 
 public interface MissionService {
 
-    // 유저가 새로고침 시 새로운 미션을 짝에 할당
-    PartnerMission refreshPartnerMission(Long userId);
+    // 특정 팀 내에서 유저의 파트너 미션 갱신
+    PartnerMissionDto refreshPartnerMission(Long teamId, Long userId);
 }

@@ -49,11 +49,6 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    //팀내 역할 (팀장/팀원)
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
-
     // MBTI 필드
     @Column(name = "mbti")
     private String mbti;
