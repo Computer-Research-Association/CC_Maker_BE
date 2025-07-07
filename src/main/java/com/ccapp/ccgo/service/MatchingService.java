@@ -36,7 +36,7 @@ public class MatchingService {
         // 1. 팀 정보 가져오기
         // 해당 팀에 소속된 팀원 전체 가져옴
         // 팀원이 없다면 (비어있다면) IllegalArgumentException
-        List<TeamMember> members = teamMemberRepository.findActiveMembersByTeamId(teamId);
+        List<TeamMember> members = teamMemberRepository.findByTeam_TeamIdAndIsActiveTrue(teamId);
         Map<Long, TeamMember> memberMap = members.stream()
                 .collect(Collectors.toMap(tm -> tm.getUser().getId(), tm -> tm));
 

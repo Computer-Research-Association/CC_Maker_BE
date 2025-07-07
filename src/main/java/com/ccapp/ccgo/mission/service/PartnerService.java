@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.mission.service;
 
+import com.ccapp.ccgo.matching.SubGroup;
 import com.ccapp.ccgo.mission.Partner;
 
 import java.util.List;

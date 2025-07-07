@@ -12,7 +12,8 @@ public interface PartnerRepository extends JpaRepository<Partner, Long> {
     // 추가로 필요한 커스텀 메서드 작성 가능
     boolean existsByTeamAndUser1AndUser2(Team team, User user1, User user2);
 
-    List<Partner> findByTeamId(Long teamId);
+    List<Partner> findByTeam_TeamId(Long teamId);
+
 
     Optional<Partner> findByUser1OrUser2(User user1, User user2);
 

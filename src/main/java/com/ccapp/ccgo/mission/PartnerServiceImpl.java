@@ -1,7 +1,10 @@
 package com.ccapp.ccgo.mission;
 
+import com.ccapp.ccgo.matching.SubGroup;
+import com.ccapp.ccgo.matching.SubGroupMember;
 import com.ccapp.ccgo.mission.repository.PartnerRepository;
 import com.ccapp.ccgo.mission.service.PartnerService;
+import com.ccapp.ccgo.repository.SubGroupMemberRepository;
 import com.ccapp.ccgo.team.Team;
 import com.ccapp.ccgo.user.User;
 import jakarta.transaction.*;
@@ -27,11 +30,6 @@ public class PartnerServiceImpl implements PartnerService {
         for (SubGroup sg : subGroups) {
             List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(sg.getId());
 
-            if (members.size() < 2) {
-                // 멤버가 2명 미만인 경우 처리 (예: 스킵하거나 예외 처리)
-                continue;
-            }
-
             User user1 = members.get(0).getUser();
             User user2 = members.get(1).getUser();
             Team team = sg.getTeam();
@@ -56,7 +54,7 @@ public class PartnerServiceImpl implements PartnerService {
 
     @Override
     public List<Partner> findPartnersByTeamId(Long teamId) {
-        return partnerRepository.findByTeamId(teamId);
+        return partnerRepository.findByTeam_TeamId(teamId);
     }
 
     @Override

@@ -10,6 +10,6 @@ public interface MissionTemplateRepository extends JpaRepository<MissionTemplate
 
     List<MissionTemplate> findByScoreOrderById(int score);
 
-
+    @Query("SELECT MAX(m.id) FROM MissionTemplate m")
     Long findMaxId();
 }
