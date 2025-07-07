@@ -44,6 +44,9 @@ public class TeamMember {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "user_name", nullable = false)
+    private String userName;
+
     // 팀 내 역할 ("TEAM_LEADER" or "TEAM_MEMBER")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

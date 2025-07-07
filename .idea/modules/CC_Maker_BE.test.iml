@@ -21,6 +21,7 @@
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-web:3.5.3" level="project" />
     <orderEntry type="library" name="Gradle: io.jsonwebtoken:jjwt-api:0.11.5" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-validation:3.5.3" level="project" />
+    <orderEntry type="library" name="Gradle: com.h2database:h2:2.3.232" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-test:3.5.3" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-test:6.5.1" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.boot:spring-boot-starter-jdbc:3.5.3" level="project" />
