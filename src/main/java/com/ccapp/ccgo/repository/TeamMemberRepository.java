@@ -27,4 +27,6 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     // 이미 특정 유저가 특정 팀 인지 확인
     boolean existsByUserAndTeam(User user, Team team);
+
+    List<TeamMember> findActiveMembersByTeamId(Long teamId);
 }

@@ -15,5 +15,6 @@ public class UserResponseDto {
     private LocalDate birthdate;
     private LocalDateTime createdAt;
     private String role;
+    private String mbti; // mbti 값
 }
 
