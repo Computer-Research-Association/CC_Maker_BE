@@ -1,6 +1,6 @@
 package com.ccapp.ccgo.mission.repository;
-import com.ccapp.ccgo.mission.Partner;
-import com.ccapp.ccgo.mission.PartnerMission;
+import com.ccapp.ccgo.mission.domain.Partner;
+import com.ccapp.ccgo.mission.domain.PartnerMission;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

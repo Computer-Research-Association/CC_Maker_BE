@@ -1,4 +1,4 @@
-package com.ccapp.ccgo.mission;
+package com.ccapp.ccgo.mission.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
