@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface MissionTemplateRepository extends JpaRepository<MissionTemplate, Long> {
 
-    List<MissionTemplate> findByScoreOrderById(int score);
+    List<MissionTemplate> findByScore(int score);
 
     @Query("SELECT MAX(m.id) FROM MissionTemplate m")
     Long findMaxId();

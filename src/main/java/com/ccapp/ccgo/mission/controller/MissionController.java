@@ -17,9 +17,10 @@ public class MissionController {
     @PostMapping("/refresh")
     public ResponseEntity<PartnerMissionDto> refreshPartnerMission(
             @RequestParam Long teamId,
-            @RequestParam Long userId
+            @RequestParam Long userId,
+            @RequestParam int score
     ) {
-        PartnerMissionDto partnerMissionDto = missionService.refreshPartnerMission(teamId, userId);
+        PartnerMissionDto partnerMissionDto = missionService.refreshPartnerMission(teamId, userId,score);
         return ResponseEntity.ok(partnerMissionDto);
     }
 }

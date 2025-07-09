@@ -13,6 +13,9 @@ import java.util.Optional;
  */
 public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
+    Optional<TeamMember> findByUser_IdAndTeam_TeamId(Long userId, Long teamId);
+
+
     // 한 유저가 이미 어떤 팀에 속해있는지 검사
     boolean existsByUser(User user);
 

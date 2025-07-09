@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +29,7 @@ public class MissionServiceImpl implements MissionService {
     private final TeamRepository teamRepository;
 
     @Override
-    public PartnerMissionDto refreshPartnerMission(Long teamId, Long userId) {
+    public PartnerMissionDto refreshPartnerMission(Long teamId, Long userId, int score) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저 없음"));
 
@@ -38,28 +39,44 @@ public class MissionServiceImpl implements MissionService {
         Partner partner = partnerRepository.findByTeamAndUser1OrTeamAndUser2(team, user, team, user)
                 .orElseThrow(() -> new IllegalStateException("해당 팀에서 짝이 없음"));
 
-        // 기존 활성 미션 비활성화
-        List<PartnerMission> activeMissions = partnerMissionRepository.findByPartnerAndIsActiveTrue(partner);
+        // 해당 점수 미션 중 기존 활성 미션 비활성화
+        List<PartnerMission> activeMissions = partnerMissionRepository
+                .findByPartnerAndIsActiveTrueAndTemplateScore(partner, score);
         for (PartnerMission pm : activeMissions) {
             pm.setActive(false);
             partnerMissionRepository.save(pm);
         }
 
-        // 마지막 미션 기반으로 다음 템플릿 선택
-        Long nextTemplateId = partnerMissionRepository.findTopByPartnerOrderByIdDesc(partner)
-                .map(pm -> pm.getTemplate().getId() + 1)
-                .orElse(1L);
-        if (nextTemplateId > 50L) nextTemplateId = 1L;
+        // 최근 3개 미션 조회해서 제외할 템플릿 ID 리스트 만들기
+        List<PartnerMission> recentMissions = partnerMissionRepository
+                .findTop3ByPartnerOrderByDueDateDesc(partner);
+        List<Long> excludeIds = recentMissions.stream()
+                .map(pm -> pm.getTemplate().getId())
+                .collect(Collectors.toList());
 
-        MissionTemplate template = missionTemplateRepository.findById(nextTemplateId)
-                .orElseThrow(() -> new RuntimeException("템플릿 미션 없음"));
+        // 점수별 전체 미션 리스트 조회
+        List<MissionTemplate> allTemplates = missionTemplateRepository.findByScore(score);
+
+        // 제외 리스트에 없는 미션만 후보로 필터링
+        List<MissionTemplate> candidateTemplates = allTemplates.stream()
+                .filter(mt -> !excludeIds.contains(mt.getId()))
+                .collect(Collectors.toList());
+
+        // 후보가 없으면 전체에서 랜덤 선택
+        if (candidateTemplates.isEmpty()) {
+            candidateTemplates = allTemplates;
+        }
+
+        // 랜덤 미션 선택
+        int randomIndex = (int) (Math.random() * candidateTemplates.size());
+        MissionTemplate selectedTemplate = candidateTemplates.get(randomIndex);
 
         PartnerMission newMission = PartnerMission.builder()
                 .partner(partner)
-                .template(template)
-                .title(template.getTitle())
-                .description(template.getDescription())
-                .dueDate(LocalDate.now().plusDays(7))
+                .template(selectedTemplate)
+                .title(selectedTemplate.getTitle())
+                .description(selectedTemplate.getDescription())
+                .dueDate(LocalDate.now().plusDays(14))
                 .isActive(true)
                 .build();
 
