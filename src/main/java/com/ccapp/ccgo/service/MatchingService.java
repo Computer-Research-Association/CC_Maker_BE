@@ -29,6 +29,7 @@ public class MatchingService {
     private static final double SIMILARITY_WEIGHT = 0.5;
 
     private final MbtiScoreProvider mbtiScoreProvider;
+    private final UserRepository userRepository;
 
     @Transactional
     public MatchingResponseDto performMatching(Long teamId) {
@@ -139,8 +140,8 @@ public class MatchingService {
             List<PairMatch> tempList = new ArrayList<>();
 
             for (TeamMember tmB : groupB) {
-                int mbtiScore = calculateMbtiTotalScore(tmA.getUser(), tmB.getUser());
-                double similarityScore = calculateSimilarityScore(tmA.getUser(), tmB.getUser(), teamId);
+                int mbtiScore = calculateMbtiTotalScore(tmA, tmB);
+                double similarityScore = calculateSimilarityScore(tmA, tmB, teamId);
                 // 가중치 계산으로 조정
                 double totalScore = mbtiScore * MBTI_WEIGHT + similarityScore * SIMILARITY_WEIGHT;
 
@@ -186,9 +187,14 @@ public class MatchingService {
 
     // A→B, B→A MBTI 점수를 각각 구해서 합산
     // 대칭적이지 않을 수도 있다는 점 고려 (현재 데이터는 대칭적임)
-    private int calculateMbtiTotalScore(User a, User b) {
-        int scoreAtoB = mbtiScoreProvider.getScore(a.getMbti(), b.getMbti());
-        int scoreBtoA = mbtiScoreProvider.getScore(b.getMbti(), a.getMbti());
+    private int calculateMbtiTotalScore(TeamMember a, TeamMember b) {
+        String mbtiA = a.getMbti();
+        String mbtiB = b.getMbti();
+        if (mbtiA == null || mbtiB == null) {
+            return 0; // mbti가 없으면 점수 0 처리하거나, 다른 정책 적용
+        }
+        int scoreAtoB = mbtiScoreProvider.getScore(mbtiA, mbtiB);
+        int scoreBtoA = mbtiScoreProvider.getScore(mbtiB, mbtiA);
         return scoreAtoB + scoreBtoA;
     }
 
@@ -196,9 +202,12 @@ public class MatchingService {
     // 각 질문 별로 A와 B의 점수 차이를 계산 → 유사도 환산
     // 차이가 0이면 유사도 5, 차이가 5면 유사도 0
     // 전체 유사도 점수 → 100% 환산
-    private double calculateSimilarityScore(User a, User b, Long teamId) {
-        List<Answer> answersA = answerRepository.findByUser_Id(a.getId());
-        List<Answer> answersB = answerRepository.findByUser_Id(b.getId());
+    private double calculateSimilarityScore(TeamMember a, TeamMember b, Long teamId) {
+        Long userIdA = a.getUser().getId();
+        Long userIdB = b.getUser().getId();
+
+        List<Answer> answersA = answerRepository.findByUser_Id(userIdA);
+        List<Answer> answersB = answerRepository.findByUser_Id(userIdB);
 
         // 팀별 질문 수 확보
         List<Question> questions = questionRepository.findByTeam_TeamId(teamId);
@@ -322,15 +331,21 @@ public class MatchingService {
 
         for (SubGroup sg : subGroups) {
             List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(sg.getId());
+
             List<UserResponseDto> userDtos = members.stream()
                     .map(sgm -> {
-                        User u = sgm.getUser();
+                        User user = sgm.getUser();
+
+                        // 유저와 팀 기반으로 TeamMember 정보 조회
+                        TeamMember teamMember = teamMemberRepository.findByUser_IdAndTeam_TeamId(user.getId(), team.getTeamId())
+                                .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
+
                         return UserResponseDto.builder()
-                                .id(u.getId())
-                                .name(u.getName())
-                                .email(u.getEmail())
-                                .gender(u.getGender())
-                                .mbti(u.getMbti())
+                                .id(user.getId())
+                                .name(user.getName())
+                                .email(user.getEmail())
+                                .gender(user.getGender())
+                                .mbti(teamMember.getMbti())  // ✅ 여기에서 MBTI 가져오기
                                 .build();
                     })
                     .collect(Collectors.toList());
@@ -348,6 +363,7 @@ public class MatchingService {
                 .subGroups(resultDtos)
                 .build();
     }
+
 
     /**
      * 내부 클래스 PairMatch
@@ -368,21 +384,41 @@ public class MatchingService {
     @Transactional
     public void saveAnswers(AnswerRequestDto dto) {
         Long userId = dto.getUserId();
+        Long teamId = dto.getTeamId();
 
-        // 기존 Answer 전부 삭제
-        List<Answer> existingAnswers = answerRepository.findByUser_Id(userId);
+        // 해당 팀의 질문만 필터링해서 삭제
+        List<Question> teamQuestions = questionRepository.findByTeam_TeamId(teamId);
+        List<Long> teamQuestionIds = teamQuestions.stream()
+                .map(Question::getId)
+                .collect(Collectors.toList());
+        List<Answer> existingAnswers = answerRepository.findByUser_Id(userId).stream()
+                .filter(ans -> teamQuestionIds.contains(ans.getQuestion().getId()))
+                .collect(Collectors.toList());
         answerRepository.deleteAll(existingAnswers);
 
-        // 새 Answer 저장
+        // 새로 저장 << 이게 무슨 뜻이징
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         List<Answer> newAnswers = dto.getAnswers().stream()
                 .map(single -> Answer.builder()
-                        .user(User.builder().id(userId).build())
+                        .user(user)  // 영속 상태의 User 엔티티
                         .question(Question.builder().id(single.getQuestionId()).build())
                         .score(single.getScore())
                         .build())
                 .collect(Collectors.toList());
 
         answerRepository.saveAll(newAnswers);
+
+        if (dto.getMbti() != null && !dto.getMbti().isEmpty()) {
+            TeamMember teamMember = teamMemberRepository
+                    .findByUser_IdAndTeam_TeamId(userId, teamId)
+                    .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
+
+            teamMember.setMbti(dto.getMbti());
+            teamMemberRepository.save(teamMember);
+        }
     }
 
 
