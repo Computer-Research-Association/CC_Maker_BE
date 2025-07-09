@@ -49,10 +49,9 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    //팀내 역할 (팀장/팀원)
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
+    // MBTI 필드
+    @Column(name = "mbti")
+    private String mbti;
 
     // 회원 가입 시 자동으로 현재 시간 설정
     @PrePersist
@@ -61,7 +60,7 @@ public class User {
     }
 
     //관심사 설문조사 완료여부
-    @Column(name = "is_interest_completed", nullable = false)
+    @Column(name = "test_completed", nullable = false)
     private boolean isInterestCompleted = false;
 }
 

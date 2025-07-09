@@ -17,14 +17,20 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     boolean existsByUser(User user);
 
     // 현재 소속 중인 팀 찾기 (Soft Delete 고려)
-    Optional<TeamMember> findByUserAndIsActiveTrue(User user);
+    List<TeamMember> findByUserAndIsActiveTrue(User user);
 
     //teammember에서 유저 조회
     Optional<TeamMember> findByUser(User user);
+
+    // 유저(user)에 대해 isActive가 true인 TeamMember 리스트 반환
+    List<TeamMember> findAllByUserAndIsActiveTrue(User user);
 
     // 팀별 멤버 목록
     List<TeamMember> findAllByTeamAndIsActiveTrue(Team team);
 
     // 이미 특정 유저가 특정 팀 인지 확인
     boolean existsByUserAndTeam(User user, Team team);
+
+    List<TeamMember> findByTeam_TeamIdAndIsActiveTrue(Long teamId);
+
 }

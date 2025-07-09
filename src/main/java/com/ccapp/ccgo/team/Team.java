@@ -17,12 +17,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(
-        name = "team",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = "createdBy")
-        }
-)
+@Table(name = "team")
+
 public class Team {
 
     // PK - 팀 ID
@@ -34,8 +30,8 @@ public class Team {
     @Column(nullable = false)
     private String teamName;
 
-    // 팀장 유저 ID (User.id 참조), UNIQUE
-    @Column(nullable = false, unique = true, name="created_by")
+    // 팀장 유저 ID (User.id 참조)
+    @Column(nullable = false, name = "created_by")
     private Long createdBy;
 
     //생성된 시간

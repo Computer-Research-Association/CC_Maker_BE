@@ -13,7 +13,6 @@ public class UserMapper {
                 .password(encodedPassword)
                 .name(dto.getName())
                 .gender(dto.getGender())
-                .role(dto.getRole())
                 .birthdate(dto.getBirthdate())
                 .build();
     }
@@ -29,7 +28,6 @@ public class UserMapper {
                 .gender(user.getGender())
                 .birthdate(user.getBirthdate())
                 .createdAt(user.getCreatedAt())
-                .role(user.getRole().name())
                 .build();
     }
 }

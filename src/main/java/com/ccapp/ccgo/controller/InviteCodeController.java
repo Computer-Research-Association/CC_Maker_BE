@@ -5,8 +5,10 @@ import com.ccapp.ccgo.dto.InviteCodeCreateResponseDto;
 import com.ccapp.ccgo.dto.InviteCodeJoinRequestDto;
 import com.ccapp.ccgo.dto.InviteCodeJoinResponseDto;
 import com.ccapp.ccgo.dto.TeamRequestDto;
+import com.ccapp.ccgo.exception.CustomException;
 import com.ccapp.ccgo.repository.InviteCodeRepository;
 import com.ccapp.ccgo.repository.TeamMemberRepository;
+import com.ccapp.ccgo.repository.TeamRepository;
 import com.ccapp.ccgo.repository.UserRepository;
 import com.ccapp.ccgo.service.InviteCodeService;
 import com.ccapp.ccgo.team.InviteCode;
@@ -23,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/invitecode")
@@ -32,13 +35,16 @@ public class InviteCodeController {
     private final InviteCodeService inviteCodeService;
     private final InviteCodeRepository inviteCodeRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamRepository teamRepository;
 
+    //코드 만드는 부분
     @PostMapping("/create")
     public ResponseEntity<InviteCodeCreateResponseDto> createInviteCode(
             @AuthenticationPrincipal LoginUserDetails userDetails) {
         System.out.println("초대코드 생성 요청 들어옴");
         System.out.println("userDetails: " + userDetails);
 
+        //작동확인 주석
         if (userDetails != null) {
             System.out.println("인증된 사용자 이메일: " + userDetails.getUsername());
             System.out.println("사용자 권한: " + userDetails.getAuthorities());
@@ -47,35 +53,32 @@ public class InviteCodeController {
         }
 
         User user = userDetails.getUser();
-
         System.out.print("코드 만듭니당");
-        System.out.println("ROLE: " + user.getRole());
-
-        // 초대코드 생성 서비스 호출
         InviteCode inviteCode = inviteCodeService.createInviteCode(user);
-        System.out.print("만들었어용");
         InviteCodeCreateResponseDto responseDto = InviteCodeCreateResponseDto.builder()
                 .code(inviteCode.getCode())
                 .expiresAt(inviteCode.getExpiresAt())
                 .build();
-        System.out.print("무슨 dto생성해용");
+
         return ResponseEntity.ok(responseDto);
+
     }
 
 
-    //시작하기를 누르면 팀 이름을 db에 저장
+    //팀 생성하기를 누르면 팀이 만들어집니당
     @PostMapping("/teamname")
     public ResponseEntity<Void> saveTeamName(
             @AuthenticationPrincipal LoginUserDetails userDetails,
             @RequestBody TeamRequestDto requestDto) {
         if (userDetails == null) {
-            return ResponseEntity.status(401).build();  // 인증 정보 없으면 401 반환
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+
         User user = userDetails.getUser();
-        String teamName = requestDto.getTeamName();
-        // 팀 이름 저장 서비스 호출
-        inviteCodeService.saveTeamName(user, teamName);
+        inviteCodeService.createTeamWithLeader(user, requestDto.getTeamName());
+
         return ResponseEntity.ok().build();
+
     }
 
     //팀원이 코드를 보냈으면 처리
@@ -88,36 +91,11 @@ public class InviteCodeController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 정보가 없습니다.");
         }
 
-        String code = requestDto.getInviteCode();
         User user = userDetails.getUser();
+        System.out.println("1. 컨트롤러 진입");
+        String teamName = inviteCodeService.joinTeamByInviteCode(requestDto.getInviteCode(), user);
 
-        // 유효한 초대 코드인지 확인
-        InviteCode inviteCode = inviteCodeRepository
-                .findByCodeAndExpiresAtAfter(code, LocalDateTime.now())
-                .orElseThrow(() -> new RuntimeException("초대 코드가 없거나 만료되었습니다."));
-
-        Team team = inviteCode.getTeam();
-        if (team == null) {
-            throw new RuntimeException("초대코드에 연결된 팀이 없습니다.");
-        }
-
-        // 이미 등록된 TeamMember 가져오기
-        TeamMember teamMember = teamMemberRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("TeamMember 정보가 없습니다."));
-
-        // 이미 팀이 설정되어 있다면 중복 가입 방지
-        if (teamMember.getTeam() != null) {
-            return ResponseEntity.badRequest().body("이미 다른 팀에 가입되어 있습니다.");
-        }
-
-        // 팀 할당 및 기타 정보 설정
-        teamMember.setTeam(team);
-        teamMember.setRole(user.getRole()); // 유저의 역할로 설정
-        teamMember.setJoinedAt(LocalDateTime.now());
-        teamMember.setActive(true);
-        teamMemberRepository.save(teamMember); // 업데이트 저장
-
-        return ResponseEntity.ok(new InviteCodeJoinResponseDto(team.getTeamName()));
+        return ResponseEntity.ok(new InviteCodeJoinResponseDto(teamName));
     }
 
 

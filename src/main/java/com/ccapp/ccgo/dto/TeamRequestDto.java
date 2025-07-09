@@ -1,12 +1,10 @@
 package com.ccapp.ccgo.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@Setter
+@Builder
 public class TeamRequestDto {
     private String teamName;
 }

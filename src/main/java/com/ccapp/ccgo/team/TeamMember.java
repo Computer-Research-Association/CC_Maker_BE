@@ -23,9 +23,10 @@ import java.time.LocalDateTime;
 @Table(
         name = "team_member",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = "user_id")
+                @UniqueConstraint(columnNames = {"user_id", "team_id"})  // ✅ 한 유저가 한 팀에만 한 번 참여 가능하도록 제한
         }
 )
+
 public class TeamMember {
 
     // PK - 팀 멤버 ID
@@ -54,5 +55,9 @@ public class TeamMember {
     // Soft Delete 여부 (true = 소속 중, false = 탈퇴)
     @Column(nullable = false)
     private boolean isActive;
+
+    //설문조사를 햇슴까
+    @Column(nullable = false)
+    private boolean isSurveyCompleted = false;  // 설문조사 기본값 false
 
 }
