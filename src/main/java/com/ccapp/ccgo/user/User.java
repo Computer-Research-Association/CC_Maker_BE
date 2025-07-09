@@ -49,10 +49,6 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    // MBTI 필드
-    @Column(name = "mbti")
-    private String mbti;
-
     // 회원 가입 시 자동으로 현재 시간 설정
     @PrePersist
     public void prePersist() {

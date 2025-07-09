@@ -60,4 +60,9 @@ public class TeamMember {
     @Column(nullable = false)
     private boolean isSurveyCompleted = false;  // 설문조사 기본값 false
 
+    // MBTI 필드
+    @Column(name = "mbti")
+    private String mbti;
+
+
 }
