@@ -11,7 +11,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SubGroupMember {
+public class
+SubGroupMember {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

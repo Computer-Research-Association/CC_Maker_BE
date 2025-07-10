@@ -3,6 +3,7 @@ package com.ccapp.ccgo.controller;
 import com.ccapp.ccgo.dto.*;
 import com.ccapp.ccgo.service.MatchingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,9 +19,10 @@ public class MatchingController {
      * 팀장이 매칭 시작 버튼 누를 때 호출
      */
 //    @PreAuthorize("hasRole('TEAM_LEADER')") 매칭권한
+    //이런식으로 ResponseEntity를 써야 한다.
     @PostMapping("/start/{teamId}")
-    public MatchingResponseDto startMatching(@PathVariable Long teamId) {
-        return matchingService.performMatching(teamId);
+    public ResponseEntity<MatchingResponseDto> startMatching(@PathVariable Long teamId) {
+        return ResponseEntity.ok(matchingService.performMatching(teamId));
     }
 
     @PostMapping("/answer")
