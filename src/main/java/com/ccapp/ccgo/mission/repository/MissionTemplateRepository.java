@@ -1,6 +1,6 @@
 package com.ccapp.ccgo.mission.repository;
 
-import com.ccapp.ccgo.mission.domain.MissionTemplate;
+import com.ccapp.ccgo.mission.entity.MissionTemplate;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

@@ -1,10 +1,9 @@
 package com.ccapp.ccgo.mission.service;
 
-import com.ccapp.ccgo.matching.SubGroup;
-import com.ccapp.ccgo.mission.domain.Partner;
+import com.ccapp.ccgo.matching.domain.entity.SubGroup;
+import com.ccapp.ccgo.mission.entity.Partner;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface PartnerService {
 

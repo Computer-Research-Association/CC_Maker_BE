@@ -1,7 +1,7 @@
 package com.ccapp.ccgo.mission.dto;
 
 import com.ccapp.ccgo.common.MissionStatus;
-import com.ccapp.ccgo.mission.domain.UserMission;
+import com.ccapp.ccgo.mission.entity.UserMission;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

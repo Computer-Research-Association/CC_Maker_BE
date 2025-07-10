@@ -1,8 +1,8 @@
 package com.ccapp.ccgo.mission.repository;
 
-import com.ccapp.ccgo.mission.domain.Partner;
-import com.ccapp.ccgo.team.Team;
-import com.ccapp.ccgo.user.User;
+import com.ccapp.ccgo.mission.entity.Partner;
+import com.ccapp.ccgo.team.entity.Team;
+import com.ccapp.ccgo.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

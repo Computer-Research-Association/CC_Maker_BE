@@ -1,13 +1,13 @@
 package com.ccapp.ccgo.mission.service;
 
 import com.ccapp.ccgo.common.MissionStatus;
-import com.ccapp.ccgo.mission.domain.*;
+import com.ccapp.ccgo.mission.entity.*;
 import com.ccapp.ccgo.mission.dto.PartnerMissionDto;
 import com.ccapp.ccgo.mission.repository.*;
-import com.ccapp.ccgo.repository.UserRepository;
-import com.ccapp.ccgo.team.Team;
-import com.ccapp.ccgo.repository.TeamRepository;
-import com.ccapp.ccgo.user.User;
+import com.ccapp.ccgo.user.repository.UserRepository;
+import com.ccapp.ccgo.team.entity.Team;
+import com.ccapp.ccgo.team.repository.TeamRepository;
+import com.ccapp.ccgo.user.entity.User;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,6 @@
 package com.ccapp.ccgo.mission.dto;
 
-import com.ccapp.ccgo.mission.domain.PartnerMission;
+import com.ccapp.ccgo.mission.entity.PartnerMission;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
