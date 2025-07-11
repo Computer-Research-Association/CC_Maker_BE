@@ -10,4 +10,7 @@ public interface SubGroupMemberRepository extends JpaRepository<SubGroupMember, 
 
     // SubGroup 기준으로 멤버들 조회
     List<SubGroupMember> findBySubGroup(SubGroup subGroup);
+
+    long countBySubGroup_Id(Long subGroupId);
+
 }

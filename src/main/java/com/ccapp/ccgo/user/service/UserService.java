@@ -58,7 +58,7 @@ public class UserService {
 
     // 4. 사용자 상세 조회
     public UserResponseDto getUserById(Long id) {
-        User user = userRepository.findById(id)
+        User user =userRepository.findById(id)
                 .orElseThrow(() -> new CustomException("해당 ID의 사용자가 없습니다.", HttpStatus.NOT_FOUND));
         return UserMapper.toDto(user);
     }

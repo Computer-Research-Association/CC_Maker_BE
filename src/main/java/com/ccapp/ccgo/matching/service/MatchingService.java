@@ -123,14 +123,18 @@ public class MatchingService {
             }
 
             String groupName = team.getTeamName() + groupIndex;
+            List<User> groupMembers = List.of(pair.userA.getUser(), pair.userB.getUser());
+
             SubGroup sg = SubGroup.builder()
                     .team(team)
                     .name(groupName)
+                    .memberCount(groupMembers.size())
                     .build();
             subGroupRepository.save(sg);
 
-            saveSubGroupMember(sg, pair.userA.getUser());
-            saveSubGroupMember(sg, pair.userB.getUser());
+            for (User user : groupMembers) {
+                saveSubGroupMember(sg, user);
+            }
 
             matchedUserIds.add(pair.userA.getUser().getId());
             matchedUserIds.add(pair.userB.getUser().getId());
@@ -246,7 +250,7 @@ public class MatchingService {
                     .orElse(0);
 
             int diff = Math.abs(scoreA - scoreB);
-            int similarity = 5 - diff;
+            int similarity = 5 - diff;  // 상수를 질문 수로 바꿔주면 된다.
             totalSimilarity += similarity;
         }
 
@@ -299,44 +303,64 @@ public class MatchingService {
                 } while (existingGroupNames.contains(groupName));
                 existingGroupNames.add(groupName);
 
+                List<User> groupMembers = List.of(tm1.getUser(), tm2.getUser());
+
                 SubGroup sg = SubGroup.builder()
                         .team(team)
                         .name(groupName)
+                        .memberCount(groupMembers.size())
                         .build();
                 subGroupRepository.save(sg);
 
-                saveSubGroupMember(sg, tm1.getUser());
-                saveSubGroupMember(sg, tm2.getUser());
+                for (User user : groupMembers) {
+                    saveSubGroupMember(sg, user);
+                }
 
                 subGroups.add(sg);
 
             } else {
-                // 홀수 남음 → 기존 그룹 중 가장 점수 높은 그룹으로 편입
+                // 홀수 남음 → 기존 그룹 중 가장 점수(각각의 유사도 점수 구한 뒤의 평균) 높은 그룹으로 편입
                 if (!subGroups.isEmpty()) {
-                    SubGroup targetGroup = subGroups.stream()
-                            .max(Comparator.comparing(sg -> {
-                                List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(sg.getId());
-                                return members.size();
-                            }))
-                            .orElse(subGroups.get(0));
-                    saveSubGroupMember(targetGroup, tm1.getUser());
+                    double maxAvgSimilarity = Double.NEGATIVE_INFINITY;
+                    SubGroup bestGroup = null;
+
+                    for (SubGroup sg : subGroups) {
+                        List<SubGroupMember> members =
+                                subGroupMemberRepository.findBySubGroup_Id(sg.getId());
+
+                        double totalSimilarity = 0;
+                        int memberCount = 0;
+
+                        for (SubGroupMember sgm : members) {
+                            TeamMember existingTm = teamMemberRepository
+                                    .findByUser_IdAndTeam_TeamId(sgm.getUser().getId(), team.getTeamId())
+                                    .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
+
+                            double similarityScore =
+                                    calculateSimilarityScore(tm1, existingTm, team.getTeamId());
+
+                            totalSimilarity += similarityScore;
+                            memberCount++;
+                        }
+
+                        double avgSimilarity = memberCount > 0 ? totalSimilarity / memberCount : 0;
+
+                        if (avgSimilarity > maxAvgSimilarity) {
+                            maxAvgSimilarity = avgSimilarity;
+                            bestGroup = sg;
+                        }
+                    }
+
+                    if (bestGroup != null) {
+                        saveSubGroupMember(bestGroup, tm1.getUser());
+
+                        long newCount =
+                                subGroupMemberRepository.countBySubGroup_Id(bestGroup.getId());
+                        bestGroup.setMemberCount((int) newCount);
+                        subGroupRepository.save(bestGroup);
+                    }
                 } else {
-                    // 기존 그룹이 없으면 단독 그룹 생성
-                    String groupName;
-                    do {
-                        groupName = team.getTeamName() + groupIndex;
-                        groupIndex++;
-                    } while (existingGroupNames.contains(groupName));
-                    existingGroupNames.add(groupName);
-
-                    SubGroup sg = SubGroup.builder()
-                            .team(team)
-                            .name(groupName)
-                            .build();
-                    subGroupRepository.save(sg);
-
-                    saveSubGroupMember(sg, tm1.getUser());
-                    subGroups.add(sg);
+                    System.out.println("[WARN] 홀수 남았지만 기존 그룹 없음. 유저ID: " + tm1.getUser().getId());
                 }
             }
         }
@@ -413,7 +437,7 @@ public class MatchingService {
                 .collect(Collectors.toList());
         answerRepository.deleteAll(existingAnswers);
 
-        // 새로 저장 << 이게 무슨 뜻이징
+        // 덮어쓰기
 
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
