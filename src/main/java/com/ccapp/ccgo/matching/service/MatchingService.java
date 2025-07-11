@@ -514,5 +514,28 @@ public class MatchingService {
         questionRepository.deleteById(questionId);
     }
 
+//    //팀원 이름 조회하기 기능
+//    @Transactional(readOnly = true)
+//    public List<String> getMatchedUserNames(Long userId) {
+//        List<SubGroupMember> members = subGroupMemberRepository.findBySameSubGroup(userId);
+//        return members.stream()
+//                .filter(m -> !m.getUser().getId().equals(userId)) // 본인 제외
+//                .map(m -> m.getUser().getName()) // 혹은
+//                .collect(Collectors.toList());
+//    }
 
+    //실험
+
+    @Transactional(readOnly = true)
+    public List<String> getMatchedUserNames(Long userId) {
+        List<SubGroupMember> members = subGroupMemberRepository.findBySameSubGroup(userId);
+        System.out.println("조회된 멤버 수: " + members.size());
+        for(SubGroupMember m : members) {
+            System.out.println("멤버 ID: " + m.getUser().getId() + ", 이름: " + m.getUser().getName());
+        }
+        return members.stream()
+                .filter(m -> !m.getUser().getId().equals(userId)) // 본인 제외
+                .map(m -> m.getUser().getName())
+                .collect(Collectors.toList());
+    }
 }

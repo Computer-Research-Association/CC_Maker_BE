@@ -60,4 +60,11 @@ public class MatchingController {
     public void deleteQuestion(@PathVariable Long questionId) {
         matchingService.deleteQuestion(questionId);
     }
+
+    @GetMapping("/matched-names")
+    public ResponseEntity<List<String>> getMatchedNames(@AuthenticationPrincipal LoginUserDetails userDetails) {
+        List<String> matchedNames = matchingService.getMatchedUserNames(userDetails.getUser().getId());
+        return ResponseEntity.ok(matchedNames);
+    }
+
 }
