@@ -1,7 +1,8 @@
 package com.ccapp.ccgo.service;
 
-import com.ccapp.ccgo.repository.TeamMemberRepository;
-import com.ccapp.ccgo.team.TeamMember;
+
+import com.ccapp.ccgo.team.entity.TeamMember;
+import com.ccapp.ccgo.team.repository.TeamMemberRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,5 +21,15 @@ public class TeamMemberService {
 
         teamMember.setSurveyCompleted(true);  // ← 여기서 DB의 isSurveyCompleted를 true로 변경
     }
+
+    @Transactional
+    public boolean isSurveyCompleted(Long userId, Long teamId) {
+        TeamMember teamMember = teamMemberRepository
+                .findByUser_IdAndTeam_TeamId(userId, teamId)
+                .orElseThrow(() -> new RuntimeException("팀 멤버를 찾을 수 없습니다."));
+        return teamMember.isSurveyCompleted();  // ← DB 필드 반환
+    }
+
+
 
 }

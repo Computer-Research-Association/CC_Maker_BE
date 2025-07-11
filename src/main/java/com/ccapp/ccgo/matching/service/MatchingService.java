@@ -16,10 +16,12 @@ import com.ccapp.ccgo.question.dto.QuestionUpdateDto;
 import com.ccapp.ccgo.question.repository.AnswerRepository;
 import com.ccapp.ccgo.question.repository.QuestionRepository;
 import com.ccapp.ccgo.team.repository.TeamMemberRepository;
+import com.ccapp.ccgo.team.repository.TeamRepository;
 import com.ccapp.ccgo.user.dto.UserResponseDto;
 import com.ccapp.ccgo.team.entity.Team;
 import com.ccapp.ccgo.team.entity.TeamMember;
 import com.ccapp.ccgo.user.entity.User;
+import com.ccapp.ccgo.user.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class MatchingService {
     private final AnswerRepository answerRepository;
     private final SubGroupRepository subGroupRepository;
     private final SubGroupMemberRepository subGroupMemberRepository;
+    private final TeamRepository teamRepository;
     // 가중치
     private static final double MBTI_WEIGHT = 0.5;
     private static final double SIMILARITY_WEIGHT = 0.5;
@@ -231,13 +234,13 @@ public class MatchingService {
 
         for (Question q : questions) {
             int scoreA = answersA.stream()
-                    .filter(ans -> ans.getQuestion().getId().equals(q.getId()))
+                    .filter(ans -> ans.getQuestionId().equals(q.getId()))
                     .map(Answer::getScore)
                     .findFirst()
                     .orElse(0);
 
             int scoreB = answersB.stream()
-                    .filter(ans -> ans.getQuestion().getId().equals(q.getId()))
+                    .filter(ans -> ans.getQuestionId().equals(q.getId()))
                     .map(Answer::getScore)
                     .findFirst()
                     .orElse(0);
@@ -396,8 +399,8 @@ public class MatchingService {
     // 새 Answer를 전부 INSERT
     // MatchingService가 매칭 돌릴 때 최신 데이터를 사용
     @Transactional
-    public void saveAnswers(AnswerRequestDto dto) {
-        Long userId = dto.getUserId();
+    public void saveAnswers(AnswerRequestDto dto, User user) {
+        Long userId = user.getId();
         Long teamId = dto.getTeamId();
 
         // 해당 팀의 질문만 필터링해서 삭제
@@ -406,20 +409,20 @@ public class MatchingService {
                 .map(Question::getId)
                 .collect(Collectors.toList());
         List<Answer> existingAnswers = answerRepository.findByUser_Id(userId).stream()
-                .filter(ans -> teamQuestionIds.contains(ans.getQuestion().getId()))
+                .filter(ans -> teamQuestionIds.contains(ans.getQuestionId()))
                 .collect(Collectors.toList());
         answerRepository.deleteAll(existingAnswers);
 
         // 새로 저장 << 이게 무슨 뜻이징
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found"));
         List<Answer> newAnswers = dto.getAnswers().stream()
                 .map(single -> Answer.builder()
-                        .user(user)  // 영속 상태의 User 엔티티
-                        .question(Question.builder().id(single.getQuestionId()).build())
+                        .user(user)
+                        .questionId(single.getQuestionId())  // question 객체 대신 questionId 직접 저장
                         .score(single.getScore())
+                        .team(team)
                         .build())
                 .collect(Collectors.toList());
 
@@ -480,7 +483,7 @@ public class MatchingService {
     @Transactional
     public void deleteQuestion(Long questionId) {
         // 삭제할 Question과 연결된 모든 Answer 레코드 조회
-        List<Answer> answers = answerRepository.findByQuestion_Id(questionId);
+        List<Answer> answers = answerRepository.findByQuestionId(questionId);
         // 조회된 Answer 레코드 전부 삭제
         answerRepository.deleteAll(answers);
         // 마지막으로 Question 자체 삭제

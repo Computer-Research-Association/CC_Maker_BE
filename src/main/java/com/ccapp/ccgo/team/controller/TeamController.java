@@ -1,11 +1,12 @@
-package com.ccapp.ccgo.controller;
-import com.ccapp.ccgo.dto.SurveyCompleteRequest;
-import com.ccapp.ccgo.dto.TeamResponseDto;
-import com.ccapp.ccgo.service.TeamMemberService;
-import com.ccapp.ccgo.user.User;
-import com.ccapp.ccgo.jwt.LoginUserDetails;
-import com.ccapp.ccgo.repository.TeamMemberRepository;
+package com.ccapp.ccgo.team.controller;
+import com.ccapp.ccgo.auth.jwt.LoginUserDetails;
 
+
+import com.ccapp.ccgo.question.dto.SurveyCompleteRequest;
+import com.ccapp.ccgo.service.TeamMemberService;
+import com.ccapp.ccgo.team.dto.TeamResponseDto;
+import com.ccapp.ccgo.team.repository.TeamMemberRepository;
+import com.ccapp.ccgo.user.entity.User;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -50,6 +52,20 @@ public class TeamController {
         teamMemberService.markSurveyCompleted(currentUser.getId(), request.getTeamId());
         System.out.print("2");
         return ResponseEntity.ok().build();
+    }
+
+
+    @GetMapping("/{teamId}/survey-status")
+    public ResponseEntity<?> getSurveyStatus(
+            @PathVariable Long teamId,
+            @AuthenticationPrincipal LoginUserDetails loginUserDetails) {
+
+        User currentUser = loginUserDetails.getUser();
+
+        boolean isCompleted = teamMemberService.isSurveyCompleted(currentUser.getId(), teamId);
+
+        return ResponseEntity.ok().body(Map.of("issurveycompleted", isCompleted));  //map을 써서 보낼지 dto로 보낼지
+        //gpt왈 map이 더 빠르고 간단함 ㅇㅇ 흠....
     }
 
 

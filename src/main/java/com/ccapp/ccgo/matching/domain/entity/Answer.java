@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.matching.domain.entity;
 
+import com.ccapp.ccgo.team.entity.Team;
 import com.ccapp.ccgo.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,15 +26,22 @@ public class Answer {
     private User user;
 
     /**
-     * 어떤 질문에 대한 답변인지
+     * 어떤 질문에 대한 답변인지 (외래키 아님)
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
-    private Question question;
+    @Column(name = "question_id", nullable = false)
+    private Long questionId;
 
     /**
      * 유저가 선택한 점수 (1~5)
      */
     @Column(nullable = false)
     private Integer score;
+
+    /**
+     * 어떤 팀에서 제출한 답변인지
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id", nullable = false)
+    private Team team;
+
 }

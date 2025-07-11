@@ -1,4 +1,4 @@
-package com.ccapp.ccgo.dto;
+package com.ccapp.ccgo.question.dto;
 
 import lombok.Getter;
 
