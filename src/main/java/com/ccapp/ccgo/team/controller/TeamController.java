@@ -1,11 +1,12 @@
-package com.ccapp.ccgo.controller;
-import com.ccapp.ccgo.dto.SurveyCompleteRequest;
-import com.ccapp.ccgo.dto.TeamResponseDto;
-import com.ccapp.ccgo.service.TeamMemberService;
-import com.ccapp.ccgo.user.User;
-import com.ccapp.ccgo.jwt.LoginUserDetails;
-import com.ccapp.ccgo.repository.TeamMemberRepository;
+package com.ccapp.ccgo.team.controller;
 
+import com.ccapp.ccgo.auth.jwt.LoginUserDetails;
+import com.ccapp.ccgo.dto.SurveyCompleteRequest;
+import com.ccapp.ccgo.service.TeamMemberService;
+import com.ccapp.ccgo.team.dto.TeamResponseDto;
+import com.ccapp.ccgo.team.repository.TeamMemberRepository;
+
+import com.ccapp.ccgo.user.entity.User;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -44,7 +45,7 @@ public class TeamController {
     @PostMapping("/survey/complete")
     public ResponseEntity<Void> completeSurvey(@RequestBody SurveyCompleteRequest request,
                                                @AuthenticationPrincipal LoginUserDetails loginUserDetails) {
-        System.out.print("프로그램ㅅ ㅣ작");
+        System.out.print("프로그램시작");
         User currentUser = loginUserDetails.getUser();
         System.out.print("1");
         teamMemberService.markSurveyCompleted(currentUser.getId(), request.getTeamId());

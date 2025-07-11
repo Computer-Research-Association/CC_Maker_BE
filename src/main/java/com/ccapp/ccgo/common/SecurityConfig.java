@@ -1,5 +1,6 @@
-package com.ccapp.ccgo.auth.jwt;
+package com.ccapp.ccgo.common;
 
+import com.ccapp.ccgo.auth.jwt.JwtAuthenticationFilter;
 import com.ccapp.ccgo.auth.service.LoginUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -55,7 +56,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login","/bcrypt-test", "/register").permitAll()  // 로그인, 회원가입 허용, "/bcrypt-test"
+                        .requestMatchers("/api/auth/login","/bcrypt-test","/bcrypt-config", "/register").permitAll()  // 로그인, 회원가입 허용, "/bcrypt-test"
                         .anyRequest().authenticated()                       // 그 외는 인증 필요
                 )
                 .authenticationProvider(authenticationProvider())

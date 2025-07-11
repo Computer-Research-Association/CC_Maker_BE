@@ -1,7 +1,8 @@
 package com.ccapp.ccgo.service;
 
-import com.ccapp.ccgo.repository.TeamMemberRepository;
-import com.ccapp.ccgo.team.TeamMember;
+
+import com.ccapp.ccgo.team.entity.TeamMember;
+import com.ccapp.ccgo.team.repository.TeamMemberRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

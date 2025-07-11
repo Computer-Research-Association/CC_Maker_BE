@@ -30,4 +30,11 @@ public class SubGroup {
      */
     @Column(nullable = false, length = 255)
     private String name;
+
+    /**
+     * 그룹당 멤버 수 (고정)
+     */
+    @Column(name = "member_count", nullable = false)
+    private int memberCount;
+
 }
