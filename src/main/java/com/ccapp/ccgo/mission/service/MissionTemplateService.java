@@ -1,5 +1,5 @@
 package com.ccapp.ccgo.mission.service;
-import com.ccapp.ccgo.mission.domain.MissionTemplate;
+import com.ccapp.ccgo.mission.entity.MissionTemplate;
 import java.util.List;
 
 

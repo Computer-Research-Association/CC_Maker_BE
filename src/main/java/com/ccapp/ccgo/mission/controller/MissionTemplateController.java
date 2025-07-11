@@ -1,5 +1,5 @@
 package com.ccapp.ccgo.mission.controller;
-import com.ccapp.ccgo.mission.domain.MissionTemplate;
+import com.ccapp.ccgo.mission.entity.MissionTemplate;
 import com.ccapp.ccgo.mission.service.MissionTemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

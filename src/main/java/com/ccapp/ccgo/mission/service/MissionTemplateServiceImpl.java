@@ -1,6 +1,6 @@
 package com.ccapp.ccgo.mission.service;
 
-import com.ccapp.ccgo.mission.domain.MissionTemplate;
+import com.ccapp.ccgo.mission.entity.MissionTemplate;
 import com.ccapp.ccgo.mission.repository.MissionTemplateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
