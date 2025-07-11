@@ -3,8 +3,10 @@ import com.ccapp.ccgo.auth.jwt.LoginUserDetails;
 
 
 import com.ccapp.ccgo.question.dto.SurveyCompleteRequest;
-import com.ccapp.ccgo.service.TeamMemberService;
+import com.ccapp.ccgo.team.dto.SurveyStatusDto;
+import com.ccapp.ccgo.team.service.TeamMemberService;
 import com.ccapp.ccgo.team.dto.TeamResponseDto;
+import com.ccapp.ccgo.team.entity.TeamMember;
 import com.ccapp.ccgo.team.repository.TeamMemberRepository;
 import com.ccapp.ccgo.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -35,8 +37,10 @@ public class TeamController {
                 .findAllByUserAndIsActiveTrue(user)
                 .stream()
                 .map(tm -> new TeamResponseDto(
-                        tm.getTeam().getTeamId(),   // getTeamId()로 변경
-                        tm.getTeam().getTeamName()))
+                        tm.getTeam().getTeamId(),
+                        tm.getTeam().getTeamName(),
+                        tm.getRole() // 팀 멤버 역할 필드 추가
+                ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(result);
@@ -67,6 +71,13 @@ public class TeamController {
         return ResponseEntity.ok().body(Map.of("issurveycompleted", isCompleted));  //map을 써서 보낼지 dto로 보낼지
         //gpt왈 map이 더 빠르고 간단함 ㅇㅇ 흠....
     }
+
+    @GetMapping("/{teamId}/survey-status/all")
+    public ResponseEntity<List<SurveyStatusDto>> getAllSurveyStatus(@PathVariable Long teamId) {
+        List<SurveyStatusDto> result = teamMemberService.getAllSurveyStatus(teamId);
+        return ResponseEntity.ok(result);
+    }
+
 
 
 }

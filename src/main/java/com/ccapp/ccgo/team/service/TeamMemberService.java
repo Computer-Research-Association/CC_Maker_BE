@@ -1,11 +1,15 @@
-package com.ccapp.ccgo.service;
+package com.ccapp.ccgo.team.service;
 
 
+import com.ccapp.ccgo.team.dto.SurveyStatusDto;
 import com.ccapp.ccgo.team.entity.TeamMember;
 import com.ccapp.ccgo.team.repository.TeamMemberRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +34,19 @@ public class TeamMemberService {
         return teamMember.isSurveyCompleted();  // ← DB 필드 반환
     }
 
+
+    @Transactional(readOnly = true)
+    public List<SurveyStatusDto> getAllSurveyStatus(Long teamId) {
+        List<TeamMember> members = teamMemberRepository.findByTeam_TeamIdAndIsActiveTrue(teamId);
+
+        return members.stream()
+                .map(member -> new SurveyStatusDto(
+                        member.getUser().getId(),
+                        member.getUser().getName(),
+                        member.isSurveyCompleted()
+                ))
+                .collect(Collectors.toList());
+    }
 
 
 }
