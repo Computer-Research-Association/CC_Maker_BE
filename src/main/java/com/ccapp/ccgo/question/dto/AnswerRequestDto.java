@@ -10,5 +10,7 @@ import java.util.List;
 @Builder
 public class AnswerRequestDto {
     private Long userId;
+    private String mbti;
+    private Long teamId;
     private List<SingleAnswerDto> answers;
 }
