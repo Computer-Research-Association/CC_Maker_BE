@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import org.springframework.security.authentication.BadCredentialsException;
 
@@ -46,5 +48,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("message", "이메일 또는 비밀번호가 잘못되었습니다."));
+    }
+
+
+    @ExceptionHandler(MatchingAlreadyCompletedException.class)
+    public ResponseEntity<Map<String, String>> handleMatchingAlreadyStarted(MatchingAlreadyCompletedException ex) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 }

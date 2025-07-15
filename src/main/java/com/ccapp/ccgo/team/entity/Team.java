@@ -38,4 +38,8 @@ public class Team {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    // 매칭 시작 여부 추가
+    @Column(name = "matching_started", nullable = false)
+    private boolean matchingStarted = false;
+
 }

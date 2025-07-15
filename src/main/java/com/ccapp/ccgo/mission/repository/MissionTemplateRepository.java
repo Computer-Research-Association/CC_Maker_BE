@@ -18,4 +18,5 @@ public interface MissionTemplateRepository extends JpaRepository<MissionTemplate
     @Query(value = "SELECT * FROM mission_template WHERE score = :score AND id NOT IN :excludedIds ORDER BY RAND() LIMIT 1", nativeQuery = true)
     MissionTemplate findRandomByScoreExcludingIds(@Param("score") int score, @Param("excludedIds") List<Long> excludedIds);
 
+    List<MissionTemplate> findByScore(int score);
 }

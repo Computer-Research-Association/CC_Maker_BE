@@ -11,5 +11,6 @@ import java.util.List;
 public class MatchingResponseDto {
     private Long teamId;
     private String teamName;
+    private boolean matchingStarted;
     private List<MatchingResultDto> subGroups;
 }

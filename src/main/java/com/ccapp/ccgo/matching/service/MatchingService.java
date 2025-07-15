@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.matching.service;
 
+import com.ccapp.ccgo.common.exception.MatchingAlreadyCompletedException;
 import com.ccapp.ccgo.matching.domain.MbtiScoreProvider;
 import com.ccapp.ccgo.matching.domain.entity.Answer;
 import com.ccapp.ccgo.matching.domain.entity.Question;
@@ -60,12 +61,15 @@ public class MatchingService {
             throw new IllegalArgumentException("해당 팀(" + teamId + ")에 유저가 없습니다.");
         }
 
+        Team team = members.get(0).getTeam();
+
+        if (team.isMatchingStarted()) {
+            throw new MatchingAlreadyCompletedException("이미 매칭이 완료된 팀입니다.");
+        }
+
         Map<Long, TeamMember> memberMap = members.stream()
                 .collect(Collectors.toMap(tm -> tm.getUser().getId(), tm -> tm));
 
-
-
-        Team team = members.get(0).getTeam();
 
         // 2. 남/여 그룹 나누기
 
@@ -146,9 +150,15 @@ public class MatchingService {
         // 7. 잉여 처리
         handleLeftovers(groupA, groupB, matchedUserIds, team, groupIndex, subGroups);
 
+        // ✅ 매칭 완료를 true로 수정
+        team.setMatchingStarted(true);
+        teamRepository.save(team);
+
         // 8. 결과 DTO 변환
         return buildMatchingResponseDto(team, subGroups);
     }
+
+
 
     // groupA의 각 멤버에게 groupB 중 top N 후보자 리스트를 만들어줌
     // 점수 높은 순서대로 5명 (동점자 포함) 까지
@@ -400,6 +410,7 @@ public class MatchingService {
 
         return MatchingResponseDto.builder()
                 .teamId(team.getTeamId())
+                .matchingStarted(team.isMatchingStarted())
                 .teamName(team.getTeamName())
                 .subGroups(resultDtos)
                 .build();
