@@ -23,6 +23,7 @@ public class MissionAssignmentService {
     private final MissionTemplateRepository missionTemplateRepository;
     private final TeamMissionRepository teamMissionRepository;
 
+    //팀에게 미션 6개씩 부여
     @Transactional
     public void assignMissionsToTeam(Long teamId) {
         Team team = teamRepository.findById(teamId)
