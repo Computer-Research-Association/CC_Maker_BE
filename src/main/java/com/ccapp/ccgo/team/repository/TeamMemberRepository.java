@@ -36,4 +36,5 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     List<TeamMember> findByTeam_TeamIdAndIsActiveTrue(Long teamId);
 
+    List<TeamMember> findByUserAndTeamAndIsActiveTrue(User user, Team team);
 }

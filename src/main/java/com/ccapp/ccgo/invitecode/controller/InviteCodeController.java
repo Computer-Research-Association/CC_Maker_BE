@@ -1,10 +1,13 @@
 package com.ccapp.ccgo.invitecode.controller;
 
+import com.ccapp.ccgo.invitecode.dto.InviteCodeCreateRequestDto;
 import com.ccapp.ccgo.invitecode.dto.InviteCodeCreateResponseDto;
 import com.ccapp.ccgo.invitecode.dto.InviteCodeJoinRequestDto;
 import com.ccapp.ccgo.invitecode.dto.InviteCodeJoinResponseDto;
 import com.ccapp.ccgo.team.dto.TeamRequestDto;
 import com.ccapp.ccgo.invitecode.repository.InviteCodeRepository;
+import com.ccapp.ccgo.team.dto.TeamResponseDto;
+import com.ccapp.ccgo.team.entity.Team;
 import com.ccapp.ccgo.team.repository.TeamMemberRepository;
 import com.ccapp.ccgo.team.repository.TeamRepository;
 import com.ccapp.ccgo.invitecode.service.InviteCodeService;
@@ -32,7 +35,9 @@ public class InviteCodeController {
     //코드 만드는 부분
     @PostMapping("/create")
     public ResponseEntity<InviteCodeCreateResponseDto> createInviteCode(
-            @AuthenticationPrincipal LoginUserDetails userDetails) {
+            @AuthenticationPrincipal LoginUserDetails userDetails,
+            @RequestBody InviteCodeCreateRequestDto requestDto) {
+
         System.out.println("초대코드 생성 요청 들어옴");
         System.out.println("userDetails: " + userDetails);
 
@@ -46,7 +51,10 @@ public class InviteCodeController {
 
         User user = userDetails.getUser();
         System.out.print("코드 만듭니당");
-        InviteCode inviteCode = inviteCodeService.createInviteCode(user);
+        Long teamId = requestDto.getTeamId();
+
+        InviteCode inviteCode = inviteCodeService.createInviteCode(user, teamId);
+
         InviteCodeCreateResponseDto responseDto = InviteCodeCreateResponseDto.builder()
                 .code(inviteCode.getCode())
                 .expiresAt(inviteCode.getExpiresAt())
@@ -59,19 +67,28 @@ public class InviteCodeController {
 
     //팀 생성하기를 누르면 팀이 만들어집니당
     @PostMapping("/teamname")
-    public ResponseEntity<Void> saveTeamName(
+    public ResponseEntity<TeamResponseDto> saveTeamName(
             @AuthenticationPrincipal LoginUserDetails userDetails,
             @RequestBody TeamRequestDto requestDto) {
+
         if (userDetails == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         User user = userDetails.getUser();
-        inviteCodeService.createTeamWithLeader(user, requestDto.getTeamName());
 
-        return ResponseEntity.ok().build();
+        Team team = inviteCodeService.createTeamWithLeader(user, requestDto.getTeamName());
 
+        TeamResponseDto responseDto = TeamResponseDto.builder()
+                .teamId(team.getTeamId())
+                .teamName(team.getTeamName())
+                .build();
+
+        System.out.println("🔎 컨트롤러에서 내려보내는 responseDto = " + responseDto);
+
+        return ResponseEntity.ok(responseDto);
     }
+
 
     //팀원이 코드를 보냈으면 처리
     @PostMapping("/join")

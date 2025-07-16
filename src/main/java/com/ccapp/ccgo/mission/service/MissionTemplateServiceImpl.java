@@ -14,12 +14,12 @@ public class MissionTemplateServiceImpl implements MissionTemplateService {
     private final MissionTemplateRepository missionTemplateRepository;
 
     @Override
-    public List<MissionTemplate> getSixMissionsByScore(int score) {
+    public List<MissionTemplate> getSixMissionsByScore(Integer score) {
         return missionTemplateRepository.findTop6ByScore(score);
     }
 
     @Override
-    public MissionTemplate refreshMission(int score, List<Long> excludedIds) {
+    public MissionTemplate refreshMission(Integer score, List<Long> excludedIds) {
         return missionTemplateRepository.findRandomByScoreExcludingIds(score, excludedIds);
     }
 }

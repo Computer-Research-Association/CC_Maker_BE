@@ -72,25 +72,25 @@ public class InviteCodeService {
 
     //초대코드생성 부분
     @Transactional
-    public InviteCode createInviteCode(User user) {
-        List<TeamMember> teamMembers = teamMemberRepository.findByUserAndIsActiveTrue(user);
-        if (teamMembers.isEmpty()) {
-            throw new CustomException("팀 소속이 아닙니다.", HttpStatus.BAD_REQUEST);
+    public InviteCode createInviteCode(User user, Long teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new CustomException("존재하지 않는 팀입니다.", HttpStatus.NOT_FOUND));
+
+        // 팀장이 이 팀의 리더인지 검증
+        List<TeamMember> teamMembers = teamMemberRepository.findByUserAndTeamAndIsActiveTrue(user, team);
+        boolean isLeader = teamMembers.stream()
+                .anyMatch(tm -> tm.getRole() == Role.LEADER);
+        if (!isLeader) {
+            throw new CustomException("팀장만 초대코드를 생성할 수 있습니다.", HttpStatus.FORBIDDEN);
         }
 
-        TeamMember leader = teamMembers.stream()
-                .filter(tm -> tm.getRole() == Role.LEADER)
-                .findFirst()
-                .orElseThrow(() -> new CustomException("팀장만 초대코드를 생성할 수 있습니다.", HttpStatus.FORBIDDEN));
-
-        Team team = leader.getTeam();
-        //기존 코드 삭제
+        // 기존 초대코드 삭제
         inviteCodeRepository.deleteByTeam(team);
 
         String code;
         do {
             code = generateRandomCode();
-        } while (inviteCodeRepository.existsById(code));
+        } while (inviteCodeRepository.existsByCode(code));
 
         InviteCode inviteCode = InviteCode.builder()
                 .code(code)
@@ -99,6 +99,7 @@ public class InviteCodeService {
 
         return inviteCodeRepository.save(inviteCode);
     }
+
 
     //현재 시각보다 이전인 초대코드를 삭제
     @Scheduled(fixedRate = 60 * 60 * 1000) // 1시간마다 실행 (ms 단위)
@@ -110,24 +111,25 @@ public class InviteCodeService {
 
 
     @Transactional
-    public void createTeamWithLeader(User user, String teamName) {
-        // 팀 생성
+    public Team createTeamWithLeader(User user, String teamName) {
         Team team = Team.builder()
                 .teamName(teamName)
                 .createdBy(user.getId())
                 .createdAt(LocalDateTime.now())
                 .build();
-        teamRepository.save(team);
 
-        // 팀장 등록
-        TeamMember teamMember = TeamMember.builder()
-                .team(team)
+        Team savedTeam = teamRepository.save(team);
+
+        TeamMember teamLeader = TeamMember.builder()
                 .user(user)
-                .joinedAt(LocalDateTime.now())
-                .isActive(true)
+                .team(savedTeam)
                 .role(Role.LEADER)
+                .isActive(true)
                 .build();
-        teamMemberRepository.save(teamMember);
+
+        teamMemberRepository.save(teamLeader);
+
+        return savedTeam;
     }
 
 

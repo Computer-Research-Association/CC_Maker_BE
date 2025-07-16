@@ -12,11 +12,11 @@ import java.util.List;
 public interface MissionTemplateRepository extends JpaRepository<MissionTemplate, Long> {
 
     @Query(value = "SELECT * FROM mission_template WHERE score = :score LIMIT 6", nativeQuery = true)
-    List<MissionTemplate> findTop6ByScore(@Param("score") int score);
+    List<MissionTemplate> findTop6ByScore(@Param("score") Integer score);
 
     // 새로고침용, 기존 6개 제외하고 랜덤 1개 조회
     @Query(value = "SELECT * FROM mission_template WHERE score = :score AND id NOT IN :excludedIds ORDER BY RAND() LIMIT 1", nativeQuery = true)
-    MissionTemplate findRandomByScoreExcludingIds(@Param("score") int score, @Param("excludedIds") List<Long> excludedIds);
+    MissionTemplate findRandomByScoreExcludingIds(@Param("score") Integer score, @Param("excludedIds") List<Long> excludedIds);
 
-    List<MissionTemplate> findByScore(int score);
+    List<MissionTemplate> findByScore(Integer score);
 }

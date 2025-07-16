@@ -22,5 +22,5 @@ public class MissionTemplate {
     private String description;
 
     //1학점 3학점 5학점 10학점
-    private int score;
+    private Integer score;
 }

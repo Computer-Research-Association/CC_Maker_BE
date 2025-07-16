@@ -1,6 +1,7 @@
 package com.ccapp.ccgo.team.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -41,5 +42,8 @@ public class Team {
     // 매칭 시작 여부 추가
     @Column(name = "matching_started", nullable = false)
     private boolean matchingStarted = false;
+
+    @Column(name = "min_score")
+    private Integer minScore;
 
 }

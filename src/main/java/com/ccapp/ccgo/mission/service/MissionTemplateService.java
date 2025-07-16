@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface MissionTemplateService {
 
-    List<MissionTemplate> getSixMissionsByScore(int score);
+    List<MissionTemplate> getSixMissionsByScore(Integer score);
 
-    MissionTemplate refreshMission(int score, List<Long> excludedIds);
+    MissionTemplate refreshMission(Integer score, List<Long> excludedIds);
 }

@@ -40,7 +40,7 @@ public class MissionAssignmentService {
         assignMissionsByScore(team, 10, 6);
     }
 
-    private void assignMissionsByScore(Team team, int score, int count) {
+    private void assignMissionsByScore(Team team, Integer score, int count) {
         List<MissionTemplate> missions = missionTemplateRepository.findByScore(score);
 
         if (missions.size() < count) {

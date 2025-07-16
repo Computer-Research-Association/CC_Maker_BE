@@ -10,7 +10,7 @@ import java.util.Optional;
 /**
  * InviteCode 엔티티용 Repository
  */
-public interface InviteCodeRepository extends JpaRepository<InviteCode, String> {
+public interface InviteCodeRepository extends JpaRepository<InviteCode, Long> {
 
     // 코드 존재 여부
     boolean existsByCode(String code);
