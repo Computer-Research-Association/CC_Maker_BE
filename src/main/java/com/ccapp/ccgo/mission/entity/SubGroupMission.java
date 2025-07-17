@@ -1,31 +1,31 @@
-package com.ccapp.ccgo.assignedmission.entity;
+package com.ccapp.ccgo.mission.entity;
 
 import com.ccapp.ccgo.matching.domain.entity.SubGroup;
-import com.ccapp.ccgo.mission.entity.MissionTemplate;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AssignedMission {
+@Table(name = "subgroup_mission")
+public class SubGroupMission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sub_group_id")
+    @JoinColumn(name = "subgroup_id")
     private SubGroup subGroup;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "mission_template_id")
     private MissionTemplate missionTemplate;
 
-    private Boolean isCompleted;
+    private boolean completed;
+
+
 }

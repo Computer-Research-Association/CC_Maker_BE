@@ -26,12 +26,14 @@ import com.ccapp.ccgo.user.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MatchingService {
@@ -536,17 +538,43 @@ public class MatchingService {
 //    }
 
     //실험
-
     @Transactional(readOnly = true)
-    public List<String> getMatchedUserNames(Long userId) {
-        List<SubGroupMember> members = subGroupMemberRepository.findBySameSubGroup(userId);
-        System.out.println("조회된 멤버 수: " + members.size());
-        for(SubGroupMember m : members) {
-            System.out.println("멤버 ID: " + m.getUser().getId() + ", 이름: " + m.getUser().getName());
+    public List<String> getMatchedUserNames(Long userId, Long teamId, Long subGroupId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+
+
+        // 1) user가 teamId 소속인지 확인
+        boolean isMember = teamMemberRepository.existsByUser_IdAndTeam_TeamIdAndIsActiveTrue(userId, teamId);
+
+        if (!isMember) {
+            throw new RuntimeException("팀 소속 아님");
         }
-        return members.stream()
-                .filter(m -> !m.getUser().getId().equals(userId)) // 본인 제외
-                .map(m -> m.getUser().getName())
+
+        // 2) 서브그룹 멤버 리스트 조회
+        List<User> subGroupUsers = subGroupMemberRepository.findUsersBySubGroupId(subGroupId);
+
+        // 3) subGroupUsers 중 같은 팀 멤버만 필터링
+        List<User> filteredUsers = subGroupUsers.stream()
+                .filter(u -> teamMemberRepository.existsByUser_IdAndTeam_TeamIdAndIsActiveTrue(u.getId(), teamId))
+                .collect(Collectors.toList());
+
+        // 4) 자기 자신 제외 후 이름 리스트 반환
+        return filteredUsers.stream()
+                .filter(u -> !u.getId().equals(userId))
+                .map(User::getName)
                 .collect(Collectors.toList());
     }
+
+
+
+    //매칭된 직후 발동하는놈
+    public Long findSubGroupIdByTeamIdAndUserId(Long teamId, Long userId) {
+        // 서브그룹 조회 (예: teamId, userId로 검색)
+        return subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId)
+                .orElse(null); // 없으면 null 반환 (적절히 처리)
+    }
+
+
+
 }
