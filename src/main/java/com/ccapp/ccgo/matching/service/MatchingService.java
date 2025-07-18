@@ -270,16 +270,27 @@ public class MatchingService {
         return similarityRate * 100;
     }
 
-    // 6. Greedy 매칭 결과 저장
-    private void saveSubGroupMember(SubGroup sg, User user) {
-        SubGroupMember sgm = SubGroupMember.builder()
-                .subGroup(sg)
+    //원래 진우꺼.
+//    // 6. Greedy 매칭 결과 저장
+//    private void saveSubGroupMember(SubGroup sg, User user) {
+//        SubGroupMember sgm = SubGroupMember.builder()
+//                .subGroup(sg)
+//                .user(user)
+//                .build();
+//        subGroupMemberRepository.save(sgm);
+//    }
+
+    //나중에 지우기
+    private void saveSubGroupMember(SubGroup subGroup, User user) {
+        SubGroupMember member = SubGroupMember.builder()
+                .subGroup(subGroup) // 영속 상태 보장
                 .user(user)
                 .build();
-        subGroupMemberRepository.save(sgm);
+        subGroupMemberRepository.save(member);
     }
 
-    // 7. 잉여 처리
+
+    //새로 도전해보느놈 나중에 지우기
     private void handleLeftovers(List<TeamMember> groupA,
                                  List<TeamMember> groupB,
                                  Set<Long> matchedUserIds,
@@ -287,96 +298,244 @@ public class MatchingService {
                                  int groupIndex,
                                  List<SubGroup> subGroups) {
 
-        // 그룹 이름 중복 방지
-        Set<String> existingGroupNames = subGroups.stream()
-                .map(SubGroup::getName)
-                .collect(Collectors.toSet());
+        // 남은 남자 / 여자 리스트
+        List<TeamMember> leftoverMales = new ArrayList<>();
+        List<TeamMember> leftoverFemales = new ArrayList<>();
 
-        List<TeamMember> leftovers = new ArrayList<>();
-        groupA.stream()
-                .filter(tm -> !matchedUserIds.contains(tm.getUser().getId()))
-                .forEach(leftovers::add);
-        groupB.stream()
-                .filter(tm -> !matchedUserIds.contains(tm.getUser().getId()))
-                .forEach(leftovers::add);
+        groupA.stream().filter(tm -> !matchedUserIds.contains(tm.getUser().getId()))
+                .forEach(tm -> {
+                    if ("MALE".equalsIgnoreCase(tm.getUser().getGender())) leftoverMales.add(tm);
+                    else leftoverFemales.add(tm);
+                });
 
-        Iterator<TeamMember> it = leftovers.iterator();
+        groupB.stream().filter(tm -> !matchedUserIds.contains(tm.getUser().getId()))
+                .forEach(tm -> {
+                    if ("MALE".equalsIgnoreCase(tm.getUser().getGender())) leftoverMales.add(tm);
+                    else leftoverFemales.add(tm);
+                });
 
-        while (it.hasNext()) {
-            TeamMember tm1 = it.next();
-            if (it.hasNext()) {
-                TeamMember tm2 = it.next();
-
-                // 잉여 그룹 이름 생성
-                String groupName;
-                do {
-                    groupName = team.getTeamName() + groupIndex;
-                    groupIndex++;
-                } while (existingGroupNames.contains(groupName));
-                existingGroupNames.add(groupName);
-
-                List<User> groupMembers = List.of(tm1.getUser(), tm2.getUser());
-
-                SubGroup sg = SubGroup.builder()
-                        .team(team)
-                        .name(groupName)
-                        .memberCount(groupMembers.size())
-                        .build();
-                subGroupRepository.save(sg);
-
-                for (User user : groupMembers) {
-                    saveSubGroupMember(sg, user);
-                }
-
-                subGroups.add(sg);
-
+        // ✅ 남자 leftover → 기존 그룹 중 memberCount < 4인 곳에 유사도 기반 추가
+        for (TeamMember male : leftoverMales) {
+            SubGroup bestGroup = findBestGroupForUser(male, subGroups, team, 4); // 변경: 3 → 4
+            if (bestGroup != null) {
+                saveSubGroupMember(bestGroup, male.getUser());
+                bestGroup.setMemberCount(bestGroup.getMemberCount() + 1);
+                subGroupRepository.save(bestGroup);
             } else {
-                // 홀수 남음 → 기존 그룹 중 가장 점수(각각의 유사도 점수 구한 뒤의 평균) 높은 그룹으로 편입
-                if (!subGroups.isEmpty()) {
-                    double maxAvgSimilarity = Double.NEGATIVE_INFINITY;
-                    SubGroup bestGroup = null;
+                SubGroup sg = createNewGroup(team, groupIndex++);
+                saveSubGroupMember(sg, male.getUser());
+                sg.setMemberCount(1);
+                subGroupRepository.save(sg);
+                subGroups.add(sg);
+            }
+        }
 
-                    for (SubGroup sg : subGroups) {
-                        List<SubGroupMember> members =
-                                subGroupMemberRepository.findBySubGroup_Id(sg.getId());
-
-                        double totalSimilarity = 0;
-                        int memberCount = 0;
-
-                        for (SubGroupMember sgm : members) {
-                            TeamMember existingTm = teamMemberRepository
-                                    .findByUser_IdAndTeam_TeamId(sgm.getUser().getId(), team.getTeamId())
-                                    .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
-
-                            double similarityScore =
-                                    calculateSimilarityScore(tm1, existingTm, team.getTeamId());
-
-                            totalSimilarity += similarityScore;
-                            memberCount++;
-                        }
-
-                        double avgSimilarity = memberCount > 0 ? totalSimilarity / memberCount : 0;
-
-                        if (avgSimilarity > maxAvgSimilarity) {
-                            maxAvgSimilarity = avgSimilarity;
-                            bestGroup = sg;
-                        }
-                    }
-
-                    if (bestGroup != null) {
-                        saveSubGroupMember(bestGroup, tm1.getUser());
-
-                        long newCount =
-                                subGroupMemberRepository.countBySubGroup_Id(bestGroup.getId());
-                        bestGroup.setMemberCount((int) newCount);
-                        subGroupRepository.save(bestGroup);
-                    }
-                } else {
-                    System.out.println("[WARN] 홀수 남았지만 기존 그룹 없음. 유저ID: " + tm1.getUser().getId());
-                }
+        // ✅ 여자 leftover → 기존 그룹 중 memberCount < 4인 곳에 유사도 기반 추가
+        for (TeamMember female : leftoverFemales) {
+            SubGroup bestGroup = findBestGroupForUser(female, subGroups, team, 4);
+            if (bestGroup != null) {
+                saveSubGroupMember(bestGroup, female.getUser());
+                bestGroup.setMemberCount(bestGroup.getMemberCount() + 1);
+                subGroupRepository.save(bestGroup);
+            } else {
+                SubGroup sg = createNewGroup(team, groupIndex++);
+                saveSubGroupMember(sg, female.getUser());
+                sg.setMemberCount(1);
+                subGroupRepository.save(sg);
+                subGroups.add(sg);
             }
         }
     }
+
+
+    private SubGroup createNewGroup(Team team, int index) {
+        String groupName = team.getTeamName() + index;
+        SubGroup subGroup = SubGroup.builder()
+                .team(team)
+                .name(groupName)
+                .memberCount(0)
+                .build();
+        return subGroupRepository.save(subGroup); // 반드시 save 후 반환
+    }
+
+
+    private SubGroup findBestGroupForUser(TeamMember user, List<SubGroup> subGroups, Team team, int maxSize) {
+        SubGroup bestGroup = null;
+        double maxAvgSimilarity = Double.NEGATIVE_INFINITY;
+
+        for (SubGroup sg : subGroups) {
+            if (sg.getMemberCount() >= maxSize) continue;
+
+            List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(sg.getId());
+            double totalSimilarity = 0;
+            int count = 0;
+
+            for (SubGroupMember sgm : members) {
+                TeamMember existingTm = teamMemberRepository
+                        .findByUser_IdAndTeam_TeamId(sgm.getUser().getId(), team.getTeamId())
+                        .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
+                totalSimilarity += calculateSimilarityScore(user, existingTm, team.getTeamId());
+                count++;
+            }
+
+            // 평균 유사도
+            double avgSim = (count > 0) ? totalSimilarity / count : 0;
+
+            if (avgSim > maxAvgSimilarity) {
+                maxAvgSimilarity = avgSim;
+                bestGroup = sg;
+            }
+        }
+
+        // ✅ fallback: 모든 그룹 점수가 0이거나 질문이 없어서 bestGroup이 null이면 첫 번째 그룹 반환
+        if (bestGroup == null && !subGroups.isEmpty()) {
+            bestGroup = subGroups.get(0);
+        }
+
+        return bestGroup;
+    }
+
+
+
+//    /**
+//     * ✅ 특정 유저를 편입할 최적 그룹 찾기
+//     * 조건:
+//     * - 현재 인원 < maxSize
+//     * - 유사도 평균이 가장 높은 그룹
+//     */
+//    private SubGroup findBestGroupForUser(TeamMember user,
+//                                          List<SubGroup> subGroups,
+//                                          Team team,
+//                                          int maxSize) {
+//
+//        SubGroup bestGroup = null;
+//        double maxAvgSimilarity = Double.NEGATIVE_INFINITY;
+//
+//        for (SubGroup sg : subGroups) {
+//            if (sg.getMemberCount() >= maxSize) continue;
+//
+//            List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(sg.getId());
+//            double totalSimilarity = 0;
+//            int count = 0;
+//
+//            for (SubGroupMember sgm : members) {
+//                TeamMember existingTm = teamMemberRepository.findByUser_IdAndTeam_TeamId(sgm.getUser().getId(), team.getTeamId())
+//                        .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
+//                double simScore = calculateSimilarityScore(user, existingTm, team.getTeamId());
+//                totalSimilarity += simScore;
+//                count++;
+//            }
+//
+//            double avgSimilarity = count > 0 ? totalSimilarity / count : 0;
+//            if (avgSimilarity > maxAvgSimilarity) {
+//                maxAvgSimilarity = avgSimilarity;
+//                bestGroup = sg;
+//            }
+//        }
+//
+//        return bestGroup;
+//    }
+
+
+    //진우원래꺼
+    // 7. 잉여 처리
+//    private void handleLeftovers(List<TeamMember> groupA,
+//                                 List<TeamMember> groupB,
+//                                 Set<Long> matchedUserIds,
+//                                 Team team,
+//                                 int groupIndex,
+//                                 List<SubGroup> subGroups) {
+//
+//        // 그룹 이름 중복 방지
+//        Set<String> existingGroupNames = subGroups.stream()
+//                .map(SubGroup::getName)
+//                .collect(Collectors.toSet());
+//
+//        List<TeamMember> leftovers = new ArrayList<>();
+//        groupA.stream()
+//                .filter(tm -> !matchedUserIds.contains(tm.getUser().getId()))
+//                .forEach(leftovers::add);
+//        groupB.stream()
+//                .filter(tm -> !matchedUserIds.contains(tm.getUser().getId()))
+//                .forEach(leftovers::add);
+//
+//        Iterator<TeamMember> it = leftovers.iterator();
+//
+//        while (it.hasNext()) {
+//            TeamMember tm1 = it.next();
+//            if (it.hasNext()) {
+//                TeamMember tm2 = it.next();
+//
+//                // 잉여 그룹 이름 생성
+//                String groupName;
+//                do {
+//                    groupName = team.getTeamName() + groupIndex;
+//                    groupIndex++;
+//                } while (existingGroupNames.contains(groupName));
+//                existingGroupNames.add(groupName);
+//
+//                List<User> groupMembers = List.of(tm1.getUser(), tm2.getUser());
+//
+//                SubGroup sg = SubGroup.builder()
+//                        .team(team)
+//                        .name(groupName)
+//                        .memberCount(groupMembers.size())
+//                        .build();
+//                subGroupRepository.save(sg);
+//
+//                for (User user : groupMembers) {
+//                    saveSubGroupMember(sg, user);
+//                }
+//
+//                subGroups.add(sg);
+//
+//            } else {
+//                // 홀수 남음 → 기존 그룹 중 가장 점수(각각의 유사도 점수 구한 뒤의 평균) 높은 그룹으로 편입
+//                if (!subGroups.isEmpty()) {
+//                    double maxAvgSimilarity = Double.NEGATIVE_INFINITY;
+//                    SubGroup bestGroup = null;
+//
+//                    for (SubGroup sg : subGroups) {
+//                        List<SubGroupMember> members =
+//                                subGroupMemberRepository.findBySubGroup_Id(sg.getId());
+//
+//                        double totalSimilarity = 0;
+//                        int memberCount = 0;
+//
+//                        for (SubGroupMember sgm : members) {
+//                            TeamMember existingTm = teamMemberRepository
+//                                    .findByUser_IdAndTeam_TeamId(sgm.getUser().getId(), team.getTeamId())
+//                                    .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
+//
+//                            double similarityScore =
+//                                    calculateSimilarityScore(tm1, existingTm, team.getTeamId());
+//
+//                            totalSimilarity += similarityScore;
+//                            memberCount++;
+//                        }
+//
+//                        double avgSimilarity = memberCount > 0 ? totalSimilarity / memberCount : 0;
+//
+//                        if (avgSimilarity > maxAvgSimilarity) {
+//                            maxAvgSimilarity = avgSimilarity;
+//                            bestGroup = sg;
+//                        }
+//                    }
+//
+//                    if (bestGroup != null) {
+//                        saveSubGroupMember(bestGroup, tm1.getUser());
+//
+//                        long newCount =
+//                                subGroupMemberRepository.countBySubGroup_Id(bestGroup.getId());
+//                        bestGroup.setMemberCount((int) newCount);
+//                        subGroupRepository.save(bestGroup);
+//                    }
+//                } else {
+//                    System.out.println("[WARN] 홀수 남았지만 기존 그룹 없음. 유저ID: " + tm1.getUser().getId());
+//                }
+//            }
+//        }
+//    }
 
     // 8. 결과 DTO 생성
     private MatchingResponseDto buildMatchingResponseDto(Team team, List<SubGroup> subGroups) {
@@ -539,29 +698,22 @@ public class MatchingService {
 
     //실험
     @Transactional(readOnly = true)
-    public List<String> getMatchedUserNames(Long userId, Long teamId, Long subGroupId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+    public List<String> getMatchedUserNames(Long userId, Long teamId) {
+        // 1. 유저 존재 확인
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다."));
 
-
-        // 1) user가 teamId 소속인지 확인
+        // 2. 팀 소속 여부 확인 (활성 멤버만)
         boolean isMember = teamMemberRepository.existsByUser_IdAndTeam_TeamIdAndIsActiveTrue(userId, teamId);
-
         if (!isMember) {
-            throw new RuntimeException("팀 소속 아님");
+            throw new RuntimeException("해당 팀에 소속되어 있지 않습니다.");
         }
 
-        // 2) 서브그룹 멤버 리스트 조회
-        List<User> subGroupUsers = subGroupMemberRepository.findUsersBySubGroupId(subGroupId);
+        // 3. 유저가 속한 SubGroup 멤버(본인 제외) 조회
+        List<User> matchedUsers = subGroupMemberRepository.findTeamMatchedMembersExcludingUser(userId, teamId);
 
-        // 3) subGroupUsers 중 같은 팀 멤버만 필터링
-        List<User> filteredUsers = subGroupUsers.stream()
-                .filter(u -> teamMemberRepository.existsByUser_IdAndTeam_TeamIdAndIsActiveTrue(u.getId(), teamId))
-                .collect(Collectors.toList());
-
-        // 4) 자기 자신 제외 후 이름 리스트 반환
-        return filteredUsers.stream()
-                .filter(u -> !u.getId().equals(userId))
+        // 4. 이름만 리스트로 변환 후 반환
+        return matchedUsers.stream()
                 .map(User::getName)
                 .collect(Collectors.toList());
     }
@@ -570,10 +722,10 @@ public class MatchingService {
 
     //매칭된 직후 발동하는놈
     public Long findSubGroupIdByTeamIdAndUserId(Long teamId, Long userId) {
-        // 서브그룹 조회 (예: teamId, userId로 검색)
         return subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId)
                 .orElse(null); // 없으면 null 반환 (적절히 처리)
     }
+
 
 
 

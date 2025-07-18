@@ -82,26 +82,53 @@ public class MatchingController {
 //        return ResponseEntity.ok(response);
 //    }
 
-    //매칭된 이후, 팀id랑 subgroupid로 팀원 찾아오는놈
-    @GetMapping("/matched-names/{teamId}/{subGroupId}")
-    public ResponseEntity<MatchedNamesResponse> getMatchedNames(@AuthenticationPrincipal LoginUserDetails userDetails,
-                                                                @PathVariable Long teamId,
-                                                                @PathVariable Long subGroupId) {
-        try {
-            Long userId = userDetails.getUser().getId();
-            System.out.println("[getMatchedNames] userId: " + userId + ", teamId: " + teamId + ", subGroupId: " + subGroupId);
+//    //매칭된 이후, 팀id랑 subgroupid로 팀원 찾아오는놈
+//    //이거 authenticaiton 아직 구현 안되서 그런듯
+//    @GetMapping("/matched-names/{teamId}/{subGroupId}")
+//    public ResponseEntity<MatchedNamesResponse> getMatchedNames(@AuthenticationPrincipal LoginUserDetails userDetails,
+//                                                                @PathVariable Long teamId,
+//                                                                @PathVariable Long subGroupId) {
+//        try {
+//            Long userId = userDetails.getUser().getId();
+//            System.out.println("[getMatchedNames] userId: " + userId + ", teamId: " + teamId + ", subGroupId: " + subGroupId);
+//
+//            List<String> matchedNames = matchingService.getMatchedUserNames(userId, teamId, subGroupId);
+//
+//            System.out.println("[getMatchedNames] matchedNames size: " + (matchedNames != null ? matchedNames.size() : "null"));
+//
+//            MatchedNamesResponse response = new MatchedNamesResponse(teamId, subGroupId, matchedNames);
+//            return ResponseEntity.ok(response);
+//        } catch (Exception e) {
+//            System.err.println("[getMatchedNames] 서버 에러 발생: " + e.getMessage());
+//            e.printStackTrace();
+//            return ResponseEntity.status(500).build();
+//        }
+//    }
 
-            List<String> matchedNames = matchingService.getMatchedUserNames(userId, teamId, subGroupId);
+    //매칭되고 난 뒤 쓰이는 놈일텐데..
+    @GetMapping("/matched-names/{teamId}")
+    public ResponseEntity<MatchedNamesResponse> getMatchedNames(
+            @RequestParam Long userId,
+            @PathVariable Long teamId) {
 
-            System.out.println("[getMatchedNames] matchedNames size: " + (matchedNames != null ? matchedNames.size() : "null"));
+        System.out.printf("[getMatchedNames] userId: %d, teamId: %d%n", userId, teamId);
 
-            MatchedNamesResponse response = new MatchedNamesResponse(teamId, subGroupId, matchedNames);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            System.err.println("[getMatchedNames] 서버 에러 발생: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(500).build();
+        // 1) userId와 teamId로 subGroupId 조회
+        Long subGroupId = matchingService.findSubGroupIdByTeamIdAndUserId(teamId, userId);
+
+        if (subGroupId == null) {
+            // 서브그룹 미존재 (매칭 안된 상태)
+            return ResponseEntity.status(404).body(new MatchedNamesResponse(teamId, null, List.of()));
         }
+
+        // 2) 매칭된 멤버 이름 조회 (본인 제외)
+        List<String> matchedNames = matchingService.getMatchedUserNames(userId, teamId);
+
+        System.out.printf("[getMatchedNames] matchedNames size: %d%n", matchedNames.size());
+
+        MatchedNamesResponse response = new MatchedNamesResponse(teamId, subGroupId, matchedNames);
+
+        return ResponseEntity.ok(response);
     }
 
     //매칭된 직후 작동하는놈
@@ -116,5 +143,11 @@ public class MatchingController {
         return ResponseEntity.ok(response);
     }
 
-
 }
+
+
+
+
+
+
+
