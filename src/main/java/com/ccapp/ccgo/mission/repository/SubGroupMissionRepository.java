@@ -13,4 +13,5 @@ public interface SubGroupMissionRepository extends JpaRepository<SubGroupMission
 
     Optional<SubGroupMission> findBySubGroupAndMissionTemplateId(SubGroup subGroup, Long missionTemplateId);
 
+
 }

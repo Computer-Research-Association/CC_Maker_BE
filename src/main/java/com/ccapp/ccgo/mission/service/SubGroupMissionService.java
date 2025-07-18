@@ -2,7 +2,9 @@ package com.ccapp.ccgo.mission.service;
 
 import com.ccapp.ccgo.matching.domain.entity.SubGroup;
 import com.ccapp.ccgo.matching.repository.SubGroupRepository;
+import com.ccapp.ccgo.mission.dto.ScoreboardResponseDto;
 import com.ccapp.ccgo.mission.dto.SubGroupMissionDto;
+import com.ccapp.ccgo.mission.dto.SubGroupScoreDto;
 import com.ccapp.ccgo.mission.entity.MissionTemplate;
 import com.ccapp.ccgo.mission.entity.SubGroupMission;
 import com.ccapp.ccgo.mission.repository.MissionTemplateRepository;
@@ -167,6 +169,7 @@ public class SubGroupMissionService {
         // 완료 처리
         mission.setCompleted(true);
     }
+
 
 
 }

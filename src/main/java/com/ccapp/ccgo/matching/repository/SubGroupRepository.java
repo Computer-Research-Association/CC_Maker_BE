@@ -11,5 +11,4 @@ import java.util.Optional;
 public interface SubGroupRepository extends JpaRepository<SubGroup, Long> {
     List<SubGroup> findByTeam_TeamId(Long teamId);
 
-
 }
