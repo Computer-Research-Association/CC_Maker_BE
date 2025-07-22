@@ -27,4 +27,6 @@ public class ScoreboardController {
         ScoreboardResponseDto response = scoreboardService.getScoreboard(teamId, userId);
         return ResponseEntity.ok(response);
     }
+
+
 }

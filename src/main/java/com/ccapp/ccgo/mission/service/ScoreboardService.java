@@ -23,7 +23,7 @@ public class ScoreboardService {
     private final SubGroupMissionRepository subGroupMissionRepository;
     private final TeamService teamService; // 팀 최소 학점 조회용
 
-    // 현재 유저가 속한 서브그룹 점수 조회
+    // 현재 유저가 속한 서브그룹 점수 + 멤버 이름 리스트 조회
     public SubGroupScoreDto getMySubGroupScore(Long teamId, Long userId) {
         Long subGroupId = subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("서브그룹을 찾을 수 없습니다."));
@@ -32,19 +32,32 @@ public class ScoreboardService {
                 .orElseThrow(() -> new IllegalArgumentException("서브그룹을 찾을 수 없습니다."));
 
         int score = calculateSubGroupScore(subGroup);
+        List<String> members = getSubGroupMemberNames(subGroupId); // ✅ 추가
 
-        return new SubGroupScoreDto(subGroup.getId(), subGroup.getName(), score);
+        return new SubGroupScoreDto(subGroup.getId(), subGroup.getName(), score, members);
     }
 
-    // 팀 내 다른 서브그룹 점수 조회 (내 서브그룹 제외)
+    // 팀 내 다른 서브그룹 점수 + 멤버 이름 리스트 조회
     public List<SubGroupScoreDto> getOtherSubGroupScores(Long teamId, Long excludeSubGroupId) {
         List<SubGroup> subGroups = subGroupRepository.findByTeam_TeamId(teamId);
 
         return subGroups.stream()
                 .filter(sg -> !sg.getId().equals(excludeSubGroupId))
-                .map(sg -> new SubGroupScoreDto(sg.getId(), sg.getName(), calculateSubGroupScore(sg)))
+                .map(sg -> {
+                    int score = calculateSubGroupScore(sg);
+                    List<String> members = getSubGroupMemberNames(sg.getId()); // ✅ 추가
+                    return new SubGroupScoreDto(sg.getId(), sg.getName(), score, members);
+                })
                 .collect(Collectors.toList());
     }
+
+    // ✅ 서브그룹 멤버 이름 리스트 조회
+    private List<String> getSubGroupMemberNames(Long subGroupId) {
+        return subGroupMemberRepository.findBySubGroup_Id(subGroupId).stream()
+                .map(member -> member.getUser().getName()) // User 엔티티에서 이름 가져오기
+                .collect(Collectors.toList());
+    }
+
 
     // 서브그룹 점수 계산 (완료된 미션 점수 합)
     private int calculateSubGroupScore(SubGroup subGroup) {
