@@ -36,6 +36,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: 06250730cc
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+
     ports:
       - "8080:8080"
     networks:
