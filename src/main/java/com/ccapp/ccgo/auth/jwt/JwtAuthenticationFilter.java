@@ -2,8 +2,8 @@ package com.ccapp.ccgo.auth.jwt;
 
 import com.ccapp.ccgo.auth.service.LoginUserDetailsService;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,23 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        String token = null;
-
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("accessToken".equals(cookie.getName())) {
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
-
-        if (token == null) {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                token = authHeader.substring(7);
-            }
-        }
+        String token = extractToken(request);
 
         try {
             if (token != null && jwtProvider.validateToken(token)) {
@@ -61,13 +45,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    log.debug("✅ JWT 인증 성공: {}", email);
                 }
             }
         } catch (Exception e) {
-            // 로그 추가 가능 (필요 시)
-            log.error("JWT 인증 처리 중 오류 발생", e);
+            log.error("❌ JWT 인증 처리 중 오류 발생", e);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Authorization 헤더 → 쿠키 순서로 토큰 추출
+     */
+    private String extractToken(HttpServletRequest request) {
+        // 1. Authorization 헤더 우선
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            log.debug("📌 Authorization 헤더에서 토큰 추출");
+            return authHeader.substring(7);
+        }
+
+        // 2. 쿠키 확인
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    log.debug("📌 쿠키에서 토큰 추출");
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 }

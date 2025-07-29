@@ -1,39 +1,40 @@
 package com.ccapp.ccgo.auth.jwt;
+
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
-import org.springframework.security.core.Authentication;
+
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.Map;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 @Component
 public class JwtProvider {
 
     private Key key;
 
-    private final String secret;
-    private final long accessTokenExpiration;
-    private final long refreshTokenExpiration;
+    @Value("${jwt.secret}")
+    private String secret;
 
-    public JwtProvider(@Value("${jwt.secret}") String secret,
-                       @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
-                       @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration) {
-        this.secret = secret;
-        this.accessTokenExpiration = accessTokenExpiration;
-        this.refreshTokenExpiration = refreshTokenExpiration;
-    }
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration;
 
     @PostConstruct
     public void init() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
-            log.warn("JWT 시크릿 키 길이가 너무 짧습니다. 최소 256비트(32바이트) 이상 권장합니다.");
+            log.error("JWT Secret 키가 너무 짧습니다. 32바이트 이상 권장!");
         }
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
@@ -43,39 +44,45 @@ public class JwtProvider {
         String roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + accessTokenExpiration);
-        return Jwts.builder()
-                .setSubject(username)
-                .claim("roles", roles)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+        return buildToken(username, Map.of("roles", roles), accessTokenExpiration);
     }
 
     public String createRefreshToken(Authentication authentication) {
+        return buildToken(authentication.getName(), null, refreshTokenExpiration);
+    }
+
+    private String buildToken(String subject, Map<String, Object> claims, long validityInMs) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + refreshTokenExpiration);
-        return Jwts.builder()
-                .setSubject(authentication.getName())
+        Date expiry = new Date(now.getTime() + validityInMs);
+        JwtBuilder builder = Jwts.builder()
+                .setSubject(subject)
                 .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+                .setExpiration(expiry)
+                .signWith(key, SignatureAlgorithm.HS256);
+
+        if (claims != null) {
+            builder.addClaims(claims);
+        }
+
+        return builder.compact();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            log.warn("JWT 유효성 검사 실패: {}", e.getMessage());
-            return false;
+        } catch (ExpiredJwtException e) {
+            log.warn("JWT 만료: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            log.warn("지원되지 않는 JWT: {}", e.getMessage());
+        } catch (MalformedJwtException e) {
+            log.warn("잘못된 JWT 구조: {}", e.getMessage());
+        } catch (SecurityException e) {
+            log.warn("JWT 서명 오류: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.warn("JWT 토큰 값 없음: {}", e.getMessage());
         }
+        return false;
     }
 
     public String getEmailFromToken(String token) {
@@ -86,4 +93,13 @@ public class JwtProvider {
                 .getBody()
                 .getSubject();
     }
+
+    public long getAccessTokenExpiration() {
+        return accessTokenExpiration;
+    }
+
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpiration;
+    }
+
 }
