@@ -24,6 +24,11 @@ jobs:
       - name: Build Spring Boot application
         run: ./gradlew clean bootJar -x test
 
+      - name: Rename JAR for deployment
+        run: |
+          JAR_PATH=$(ls build/libs/*.jar | head -n 1)
+          cp "$JAR_PATH" build/libs/app.jar
+
       - name: Prepare PEM key
         run: |
           echo "${{ secrets.PEM_KEY }}" > my-key.pem
@@ -33,7 +38,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i my-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p cc_go"
 
-      - name: Copy JAR to EC2
+      - name: Copy JAR and Dockerfile to EC2
         run: |
           scp -o StrictHostKeyChecking=no -i my-key.pem build/libs/app.jar \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/app.jar
