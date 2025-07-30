@@ -1,14 +1,6 @@
-name: Deploy Spring Boot to EC2 via SCP + Docker
-
-on:
-  push:
-    branches:
-      - test-deploy
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -30,6 +22,10 @@ jobs:
           echo "${{ secrets.PEM_KEY }}" > my-key.pem
           chmod 600 my-key.pem
 
+      - name: Ensure remote deploy directory exists
+        run: |
+          ssh -o StrictHostKeyChecking=no -i my-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ${{ secrets.DEPLOY_DIR }}"
+
       - name: Copy JAR to EC2
         run: |
           scp -o StrictHostKeyChecking=no -i my-key.pem build/libs/*.jar \
@@ -42,14 +38,11 @@ jobs:
 
             cd ${{ secrets.DEPLOY_DIR }}
 
-            # 기존 컨테이너 종료 및 제거
             docker stop spring-app || true
             docker rm spring-app || true
 
-            # 새 Docker 이미지 빌드
             docker build -t spring-app .
 
-            # 컨테이너 실행
             docker run -d --name spring-app -p 8080:8080 spring-app
 
             echo "✅ Docker 배포 완료"
