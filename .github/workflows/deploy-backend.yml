@@ -31,19 +31,18 @@ jobs:
 
       - name: Ensure remote deploy directory exists
         run: |
-          ssh -o StrictHostKeyChecking=no -i my-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ${{ secrets.DEPLOY_DIR }}"
+          ssh -o StrictHostKeyChecking=no -i my-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p cc_go"
 
       - name: Copy JAR to EC2
         run: |
           scp -o StrictHostKeyChecking=no -i my-key.pem build/libs/*.jar \
-          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ secrets.DEPLOY_DIR }}/app.jar
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/app.jar
 
       - name: Deploy Dockerized app on EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i my-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             echo "🛠 Docker 재배포 시작"
-
-            cd ${{ secrets.DEPLOY_DIR }}
+            cd cc_go
 
             docker stop spring-app || true
             docker rm spring-app || true
