@@ -1,4 +1,4 @@
-name: Deploy Spring Boot to EC2 via SCP + Docker
+name: Deploy Spring Boot to EC2 via SCP + Docker Compose
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -38,26 +39,25 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i my-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p cc_go"
 
-      - name: Copy JAR and Dockerfile to EC2
+      - name: Copy necessary files to EC2
         run: |
           scp -o StrictHostKeyChecking=no -i my-key.pem build/libs/app.jar \
-          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/app.jar
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/app.jar
 
           scp -o StrictHostKeyChecking=no -i my-key.pem Dockerfile \
-          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/Dockerfile
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/Dockerfile
 
-      - name: Deploy Dockerized app on EC2
+          scp -o StrictHostKeyChecking=no -i my-key.pem docker-compose.yml \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/docker-compose.yml
+
+      - name: Deploy using Docker Compose on EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i my-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            echo "🛠 Docker 재배포 시작"
+            echo "🛠 Docker Compose 재배포 시작"
             cd cc_go
 
-            docker stop spring-app || true
-            docker rm spring-app || true
+            docker-compose down || true
+            docker-compose up -d --build
 
-            docker build -t spring-app .
-
-            docker run -d --name spring-app -p 8080:8080 spring-app
-
-            echo "✅ Docker 배포 완료"
+            echo "✅ Docker Compose 배포 완료"
           EOF
