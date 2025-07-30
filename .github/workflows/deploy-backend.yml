@@ -19,6 +19,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Give execute permission to gradlew
+        run: chmod +x ./gradlew
+
       - name: Build Spring Boot application
         run: ./gradlew clean bootJar -x test
 
@@ -39,11 +42,11 @@ jobs:
 
             cd ${{ secrets.DEPLOY_DIR }}
 
-            # 기존 컨테이너 중지 및 제거
+            # 기존 컨테이너 종료 및 제거
             docker stop spring-app || true
             docker rm spring-app || true
 
-            # 새 이미지 빌드
+            # 새 Docker 이미지 빌드
             docker build -t spring-app .
 
             # 컨테이너 실행
