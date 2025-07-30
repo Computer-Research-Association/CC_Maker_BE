@@ -1,0 +1,41 @@
+name: Deploy Spring Boot to EC2
+
+on:
+  push:
+    branches:
+      - main   # main 브랜치에 push될 때 실행됨
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup PEM key
+        run: |
+          echo "${{ secrets.PEM_KEY }}" > my-key.pem
+          chmod 600 my-key.pem
+
+      - name: Deploy to EC2 via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no -i my-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "📦 Spring Boot 배포 시작"
+
+            # 1. 프로젝트 폴더로 이동
+            cd ${{ secrets.DEPLOY_DIR }}
+
+            # 2. 최신 코드 가져오기
+            git pull origin main
+
+            # 3. 빌드 (테스트 생략)
+            ./gradlew clean build -x test
+
+            # 4. 기존 서버 종료 (실행 중이면)
+            pkill -f 'java -jar' || true
+
+            # 5. 새 서버 실행
+            nohup java -jar build/libs/*.jar > app.log 2>&1 &
+            echo "✅ 배포 완료"
+          EOF
