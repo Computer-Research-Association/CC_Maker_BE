@@ -3,8 +3,8 @@ name: Deploy Spring Boot to EC2
 on:
   push:
     branches:
-      - main   # main 브랜치에 push될 때 실행됨
-
+#      - main   # main 브랜치에 push될 때 실행됨
+        - test-deploy
 jobs:
   deploy:
     runs-on: ubuntu-latest
