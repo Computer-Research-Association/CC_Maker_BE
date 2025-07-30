@@ -35,8 +35,11 @@ jobs:
 
       - name: Copy JAR to EC2
         run: |
-          scp -o StrictHostKeyChecking=no -i my-key.pem build/libs/*.jar \
+          scp -o StrictHostKeyChecking=no -i my-key.pem build/libs/app.jar \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/app.jar
+
+          scp -o StrictHostKeyChecking=no -i my-key.pem Dockerfile \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:cc_go/Dockerfile
 
       - name: Deploy Dockerized app on EC2
         run: |
