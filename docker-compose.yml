@@ -1,3 +1,47 @@
+#version: '3.8'
+#
+#services:
+#  mysql:
+#    image: mysql:latest
+#    container_name: mysql-container
+#    environment:
+#      MYSQL_ROOT_PASSWORD: qkrwlsdn
+#      MYSQL_DATABASE: ccmake
+#    ports:
+#      - "3306:3306"
+#    volumes:
+#      - mysql-data:/var/lib/mysql
+#    networks:
+#      - backend-network
+#
+#  redis:
+#    image: redis:latest
+#    container_name: redis-container
+#    ports:
+#      - "6379:6379"
+#    networks:
+#      - backend-network
+#
+#  spring-app:
+#    build: .
+#    container_name: spring-app-container
+#    depends_on:
+#      - mysql
+#      - redis
+#    env_file:
+#      - .env
+#    ports:
+#      - "8080:8080"
+#    networks:
+#      - backend-network
+#
+#volumes:
+#  mysql-data:
+#
+#networks:
+#  backend-network:
+
+
 version: '3.8'
 
 services:
@@ -5,10 +49,10 @@ services:
     image: mysql:latest
     container_name: mysql-container
     environment:
-      MYSQL_ROOT_PASSWORD: 06250730cc
+      MYSQL_ROOT_PASSWORD: qkrwlsdn
       MYSQL_DATABASE: ccmake
       MYSQL_USER: user
-      MYSQL_PASSWORD: 06250730cc
+      MYSQL_PASSWORD: qkrwlsdn
     ports:
       - "3306:3306"
     volumes:
@@ -31,9 +75,9 @@ services:
       - mysql
       - redis
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ccmake?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-container:3306/ccmake?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: 06250730cc
+      SPRING_DATASOURCE_PASSWORD: qkrwlsdn
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
 

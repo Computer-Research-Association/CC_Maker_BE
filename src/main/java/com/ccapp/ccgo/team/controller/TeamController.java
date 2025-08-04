@@ -51,7 +51,6 @@ public class TeamController {
         return ResponseEntity.ok(result);
     }
 
-
     @PostMapping("/survey/complete")
     public ResponseEntity<Void> completeSurvey(@RequestBody SurveyCompleteRequest request,
                                                @AuthenticationPrincipal LoginUserDetails loginUserDetails) {

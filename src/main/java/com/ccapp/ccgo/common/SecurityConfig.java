@@ -59,7 +59,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/auth/refresh", "/register").permitAll()
 
                         // LEADER 전용 API (팀 관리)
-                        .requestMatchers("/api/team/**").hasRole("LEADER")
+                        .requestMatchers("/api/team/**").hasAnyRole("LEADER", "MEMBER")
 
                         // MEMBER 이상 접근 가능 (예시)
                         .requestMatchers("/api/member/**").hasAnyRole("MEMBER", "LEADER")

@@ -210,3 +210,6 @@ src/main/resources
 
 # pem 파일 (혹시나)
 *.pem
+
+# .gitignore
+.env
