@@ -2,7 +2,7 @@ name: Deploy Backend to EC2 via Docker
 
 on:
   push:
-    branches: test-deploy
+    branches: [ test-deploy ]  # 또는 배포 브랜치명
 
 jobs:
   deploy:
@@ -54,4 +54,4 @@ jobs:
             docker rm ccgo-app || true
             docker rmi ccgo-app || true
             docker compose build
-            docker compo
+            docker compose up -d
