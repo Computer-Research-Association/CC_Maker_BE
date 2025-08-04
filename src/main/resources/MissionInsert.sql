@@ -1,4 +1,4 @@
-USE newuser;
+USE ccmake;
 INSERT INTO mission_template (title, description, score) VALUES
     (' 미션 1', '서로의 첫인상 공유하기', 1),
     (' 미션 2', '인스타 맞팔하기', 1),
