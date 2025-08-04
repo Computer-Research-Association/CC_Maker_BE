@@ -46,6 +46,7 @@ jobs:
           key: ${{ secrets.PEM_KEY }}
           source: "deploy/app.jar,deploy/.env"
           target: "/home/ec2-user/ccgo"
+          strip_components: 1
 
       - name: SSH into EC2 and restart Docker container
         uses: appleboy/ssh-action@v0.1.7
