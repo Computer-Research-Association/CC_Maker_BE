@@ -20,6 +20,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Give gradlew execute permission
+        run: chmod +x ./gradlew
+
       - name: Build Spring Boot JAR
         run: ./gradlew clean bootJar -x test
 
