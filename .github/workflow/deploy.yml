@@ -1,0 +1,29 @@
+- name: Docker Build & Push
+  env:
+    DB_URL: ${{ secrets.DEPLOY_DB_URL }}
+    DB_USER: ${{ secrets.DEPLOY_DB_USER }}
+    DB_PASS: ${{ secrets.DEPLOY_DB_PASS }}
+    JWT_SECRET: ${{ secrets.DEPLOY_JWT_SECRET }}
+    REDIS_HOST: ${{ secrets.DEPLOY_REDIS_HOST }}
+    REDIS_PORT: ${{ secrets.DEPLOY_REDIS_PORT }}   # 없으면 직접 6379 입력 가능
+    SPRING_PROFILES_ACTIVE: deploy
+  run: |
+    echo "DB_URL=$DB_URL" >> .env
+    echo "DB_USER=$DB_USER" >> .env
+    echo "DB_PASS=$DB_PASS" >> .env
+    echo "JWT_SECRET=$JWT_SECRET" >> .env
+    echo "REDIS_HOST=$REDIS_HOST" >> .env
+    echo "REDIS_PORT=$REDIS_PORT" >> .env
+    echo "SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE" >> .env
+    
+    docker build --build-arg DB_URL=$DB_URL \
+                 --build-arg DB_USER=$DB_USER \
+                 --build-arg DB_PASS=$DB_PASS \
+                 --build-arg JWT_SECRET=$JWT_SECRET \
+                 --build-arg REDIS_HOST=$REDIS_HOST \
+                 --build-arg REDIS_PORT=$REDIS_PORT \
+                 --build-arg SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE \
+                 -t yourname/yourapp:latest .
+    
+    echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    docker push yourname/yourapp:latest
