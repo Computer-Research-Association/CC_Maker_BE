@@ -1,8 +1,10 @@
-name: Deploy Backend to EC2 via Docker
+name: Deploy Spring Boot to EC2
 
 on:
   push:
-    branches: [ test-deploy ]  # 또는 배포 브랜치명
+    branches:
+#      - main   # main 브랜치에 push될 때 실행됨
+        - test-deploy
 
 jobs:
   deploy:
