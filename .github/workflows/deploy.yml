@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy Spring Boot to EC2
 
 on:
   push:
@@ -6,51 +6,61 @@ on:
       - distribution
 
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          distribution: temurin
-          java-version: 17
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
+      - name: Give gradlew execute permission
         run: chmod +x ./gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew clean build
+      - name: Build Spring Boot JAR
+        run: ./gradlew clean bootJar -x test
 
-      - name: Docker Build & Push
-        env:
-          DB_URL: ${{ secrets.DEPLOY_DB_URL }}
-          DB_USER: ${{ secrets.DEPLOY_DB_USER }}
-          DB_PASS: ${{ secrets.DEPLOY_DB_PASS }}
-          JWT_SECRET: ${{ secrets.DEPLOY_JWT_SECRET }}
-          REDIS_HOST: ${{ secrets.DEPLOY_REDIS_HOST }}
-          REDIS_PORT: ${{ secrets.DEPLOY_REDIS_PORT }}
-          SPRING_PROFILES_ACTIVE: deploy
+      - name: Prepare deployment directory
         run: |
-          echo "DB_URL=$DB_URL" >> .env
-          echo "DB_USER=$DB_USER" >> .env
-          echo "DB_PASS=$DB_PASS" >> .env
-          echo "JWT_SECRET=$JWT_SECRET" >> .env
-          echo "REDIS_HOST=$REDIS_HOST" >> .env
-          echo "REDIS_PORT=$REDIS_PORT" >> .env
-          echo "SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE" >> .env
+          mkdir -p deploy
+          cp build/libs/*.jar deploy/app.jar
 
-          docker build --build-arg DB_URL=$DB_URL \
-                       --build-arg DB_USER=$DB_USER \
-                       --build-arg DB_PASS=$DB_PASS \
-                       --build-arg JWT_SECRET=$JWT_SECRET \
-                       --build-arg REDIS_HOST=$REDIS_HOST \
-                       --build-arg REDIS_PORT=$REDIS_PORT \
-                       --build-arg SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE \
-                       -t yourname/yourapp:latest .
+      - name: Create .env file for prod
+        run: |
+          echo "DB_URL=${{ secrets.DEPLOY_DB_URL }}" >> deploy/.env
+          echo "DB_USER=${{ secrets.DEPLOY_DB_USER }}" >> deploy/.env
+          echo "DB_PASS=${{ secrets.DEPLOY_DB_PASS }}" >> deploy/.env
+          echo "JWT_SECRET=${{ secrets.DEPLOY_JWT_SECRET }}" >> deploy/.env
+          echo "JWT_ACCESS_TOKEN_EXPIRATION=86400000" >> deploy/.env
+          echo "JWT_REFRESH_TOKEN_EXPIRATION=604800000" >> deploy/.env
+          echo "REDIS_HOST=redis" >> deploy/.env      
+          echo "REDIS_PORT=6379" >> deploy/.env
 
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-          docker push yourname/yourapp:latest
+      - name: Upload app.jar and .env to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.PEM_KEY }}
+          source: "deploy/app.jar,deploy/.env,docker-compose.yml"
+          target: "/home/ec2-user/ccgo"
+          strip_components: 1
+
+      - name: SSH into EC2 and restart Docker container
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.PEM_KEY }}
+          script: |
+            cd ~/ccgo
+            docker stop ccgo-app || true
+            docker rm ccgo-app || true
+            docker rmi ccgo-app || true
+            docker compose build
+            docker compose up -d
