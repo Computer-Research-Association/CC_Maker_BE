@@ -3,8 +3,7 @@ name: Deploy Spring Boot to EC2
 on:
   push:
     branches:
-#      - main   # main 브랜치에 push될 때 실행됨
-        - test-deploy
+      - test-deploy
 
 jobs:
   deploy:
@@ -37,6 +36,8 @@ jobs:
           echo "DB_USER=${{ secrets.DEPLOY_DB_USER }}" >> deploy/.env
           echo "DB_PASS=${{ secrets.DEPLOY_DB_PASS }}" >> deploy/.env
           echo "JWT_SECRET=${{ secrets.DEPLOY_JWT_SECRET }}" >> deploy/.env
+          echo "JWT_ACCESS_TOKEN_EXPIRATION=86400000" >> deploy/.env
+          echo "JWT_REFRESH_TOKEN_EXPIRATION=604800000" >> deploy/.env
 
       - name: Upload app.jar and .env to EC2
         uses: appleboy/scp-action@v0.1.7
