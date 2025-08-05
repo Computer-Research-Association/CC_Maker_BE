@@ -32,13 +32,13 @@ jobs:
 
       - name: Create .env file for prod
         run: |
-          echo "DB_URL=${{ secrets.DEPLOY_DB_URL }}" >> deploy/.env
-          echo "DB_USER=${{ secrets.DEPLOY_DB_USER }}" >> deploy/.env
-          echo "DB_PASS=${{ secrets.DEPLOY_DB_PASS }}" >> deploy/.env
-          echo "JWT_SECRET=${{ secrets.DEPLOY_JWT_SECRET }}" >> deploy/.env
+          echo "DEPLOY_DB_URL=${{ secrets.DEPLOY_DB_URL }}" >> deploy/.env
+          echo "DEPLOY_DB_USER=${{ secrets.DEPLOY_DB_USER }}" >> deploy/.env
+          echo "DEPLOY_DB_PASS=${{ secrets.DEPLOY_DB_PASS }}" >> deploy/.env
+          echo "DEPLOY_JWT_SECRET=${{ secrets.DEPLOY_JWT_SECRET }}" >> deploy/.env
           echo "JWT_ACCESS_TOKEN_EXPIRATION=86400000" >> deploy/.env
           echo "JWT_REFRESH_TOKEN_EXPIRATION=604800000" >> deploy/.env
-          echo "REDIS_HOST=redis" >> deploy/.env      
+          echo "REDIS_HOST=redis" >> deploy/.env
           echo "REDIS_PORT=6379" >> deploy/.env
 
       - name: Upload app.jar and .env to EC2
@@ -62,5 +62,5 @@ jobs:
             docker stop ccgo-app || true
             docker rm ccgo-app || true
             docker rmi ccgo-app || true
-            docker compose build
-            docker compose up -d
+            docker compose --env-file .env build
+            docker compose --env-file .env up -d
