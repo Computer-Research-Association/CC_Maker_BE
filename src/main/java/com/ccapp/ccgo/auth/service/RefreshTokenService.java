@@ -1,47 +1,36 @@
 package com.ccapp.ccgo.auth.service;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.TimeUnit;
-
 @Service
-@RequiredArgsConstructor
 public class RefreshTokenService {
 
-    private final StringRedisTemplate redisTemplate;
-
-    private static final String REFRESH_TOKEN_PREFIX = "refreshToken:";
-
     /**
-     * Redis에 Refresh Token 저장 (TTL 적용)
+     * Stateless 방식이므로 저장 기능은 필요하지 않습니다.
      */
     public void saveRefreshToken(String email, String refreshToken, long expirationMillis) {
-        String key = REFRESH_TOKEN_PREFIX + email;
-        redisTemplate.opsForValue().set(key, refreshToken, expirationMillis, TimeUnit.MILLISECONDS);
+        // 저장 기능 제거
     }
 
     /**
-     * Redis에서 Refresh Token 조회
+     * Stateless 방식이므로 조회 기능은 필요하지 않습니다.
      */
     public String getRefreshToken(String email) {
-        String key = REFRESH_TOKEN_PREFIX + email;
-        return redisTemplate.opsForValue().get(key);
+        return null;
     }
 
     /**
-     * Redis에 저장된 Refresh Token과 비교하여 유효성 확인
+     * JWT 토큰 자체를 검증하므로 여기서는 항상 true 리턴하거나 별도 검증을 하지 않습니다.
+     * 실제 토큰 검증은 JwtProvider에서 수행됩니다.
      */
     public boolean validateRefreshToken(String email, String refreshToken) {
-        String savedToken = getRefreshToken(email);
-        return savedToken != null && savedToken.equals(refreshToken);
+        return true;
     }
 
     /**
-     * 로그아웃 시 Refresh Token 삭제
+     * 서버에 저장된 토큰이 없으므로 삭제할 것도 없습니다.
      */
     public void deleteRefreshToken(String email) {
-        redisTemplate.delete(REFRESH_TOKEN_PREFIX + email);
+        // 삭제 기능 제거
     }
 }
