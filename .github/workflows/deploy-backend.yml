@@ -29,6 +29,7 @@ jobs:
         run: |
           mkdir -p deploy
           cp build/libs/*.jar deploy/app.jar
+ 
 
       - name: Create .env file for prod
         run: |
