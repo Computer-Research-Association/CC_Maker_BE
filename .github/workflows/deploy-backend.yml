@@ -62,3 +62,5 @@ jobs:
             docker rmi ccgo-app || true
             docker compose build
             docker compose up -d
+            
+            
