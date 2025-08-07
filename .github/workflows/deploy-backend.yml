@@ -30,6 +30,7 @@ jobs:
           mkdir -p deploy
           cp build/libs/*.jar deploy/app.jar
 
+
       - name: Create .env file for prod
         run: |
           echo "SPRING_DATASOURCE_URL=${{ secrets.DEPLOY_DB_URL }}" >> deploy/.env
