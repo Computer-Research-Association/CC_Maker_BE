@@ -47,8 +47,6 @@ jobs:
           source: "deploy/app.jar,deploy/.env,docker-compose.yml"
           target: "/home/ec2-user/ccgo"
           strip_components: 1
-
-
       - name: SSH into EC2 and restart Docker container
         uses: appleboy/ssh-action@v0.1.7
         with:
