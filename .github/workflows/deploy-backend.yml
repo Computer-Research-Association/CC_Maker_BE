@@ -29,11 +29,13 @@ jobs:
         run: |
           mkdir -p deploy
           cp build/libs/*.jar deploy/app.jar
+
       - name: Create .env file for prod
         run: |
-          echo "DB_URL=${{ secrets.DEPLOY_DB_URL }}" >> deploy/.env
-          echo "DB_USER=${{ secrets.DEPLOY_DB_USER }}" >> deploy/.env
-          echo "DB_PASS=${{ secrets.DEPLOY_DB_PASS }}" >> deploy/.env
+          echo "SPRING_DATASOURCE_URL=${{ secrets.DEPLOY_DB_URL }}" >> deploy/.env
+          echo "SPRING_DATASOURCE_USERNAME=${{ secrets.DEPLOY_DB_USER }}" >> deploy/.env
+          echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.DEPLOY_DB_PASS }}" >> deploy/.env
+          echo "SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver" >> deploy/.env
           echo "JWT_SECRET=${{ secrets.DEPLOY_JWT_SECRET }}" >> deploy/.env
           echo "JWT_ACCESS_TOKEN_EXPIRATION=86400000" >> deploy/.env
           echo "JWT_REFRESH_TOKEN_EXPIRATION=604800000" >> deploy/.env
