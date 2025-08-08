@@ -60,4 +60,12 @@ public class UserController {
         userService.changePassword(passwordChangeRequestDto);
         return ResponseEntity.ok().build();
     }
+
+    // 계정 탈퇴
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteCurrentUser() {
+        log.info("✅ 계정 탈퇴 요청");
+        userService.deleteCurrentUser();
+        return ResponseEntity.ok().build();
+    }
 }

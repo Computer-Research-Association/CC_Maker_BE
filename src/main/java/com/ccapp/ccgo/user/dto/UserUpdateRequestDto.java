@@ -17,6 +17,7 @@ public class UserUpdateRequestDto {
     @Email(message = "올바른 이메일 형식이 아닙니다.")
     private String email;
     
+    // 선택적 필드들 (프론트엔드에서 전송하지 않을 수 있음)
     private String birthdate; // YYYY-MM-DD 형식의 문자열
     private String gender;
 

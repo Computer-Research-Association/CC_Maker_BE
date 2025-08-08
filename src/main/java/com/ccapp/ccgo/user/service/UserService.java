@@ -170,4 +170,15 @@ public class UserService {
         
         userRepository.save(user);
     }
+
+    // 11. 현재 사용자 계정 삭제 (탈퇴)
+    public void deleteCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException("로그인한 사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND));
+        
+        userRepository.delete(user);
+    }
 }
