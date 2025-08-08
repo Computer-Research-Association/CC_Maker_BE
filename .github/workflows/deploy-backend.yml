@@ -3,7 +3,7 @@ name: Deploy Spring Boot to EC2
 on:
   push:
     branches:
-      - DELredis
+      - test-mysql
 
 jobs:
   deploy:

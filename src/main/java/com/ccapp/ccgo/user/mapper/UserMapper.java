@@ -2,6 +2,7 @@ package com.ccapp.ccgo.user.mapper;
 
 import com.ccapp.ccgo.user.dto.UserRequestDto;
 import com.ccapp.ccgo.user.dto.UserResponseDto;
+import com.ccapp.ccgo.user.dto.UserUpdateRequestDto;
 import com.ccapp.ccgo.user.entity.User;
 
 public class UserMapper {
@@ -31,5 +32,23 @@ public class UserMapper {
                 .birthdate(user.getBirthdate())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    // UpdateRequestDto -> Entity (부분 업데이트용)
+    public static void updateEntityFromDto(User user, UserUpdateRequestDto dto) {
+        if (user == null || dto == null) return;
+
+        if (dto.getName() != null) {
+            user.setName(dto.getName());
+        }
+        if (dto.getEmail() != null) {
+            user.setEmail(dto.getEmail());
+        }
+        if (dto.getBirthdate() != null && !dto.getBirthdate().trim().isEmpty()) {
+            user.setBirthdate(dto.getBirthdateAsLocalDate());
+        }
+        if (dto.getGender() != null) {
+            user.setGender(dto.getGender());
+        }
     }
 }
