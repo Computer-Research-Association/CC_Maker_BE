@@ -144,8 +144,13 @@ public class UserService {
         // 모든 필드 업데이트
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
-        user.setBirthdate(dto.getBirthdateAsLocalDate());
-        user.setGender(dto.getGender());
+        // birthdate와 gender는 선택적 필드이므로 null 체크
+        if (dto.getBirthdate() != null && !dto.getBirthdate().trim().isEmpty()) {
+            user.setBirthdate(dto.getBirthdateAsLocalDate());
+        }
+        if (dto.getGender() != null && !dto.getGender().trim().isEmpty()) {
+            user.setGender(dto.getGender());
+        }
         
         userRepository.save(user);
         return UserMapper.toDto(user);

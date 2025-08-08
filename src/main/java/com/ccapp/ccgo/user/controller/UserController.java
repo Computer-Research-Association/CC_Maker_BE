@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
+@RequestMapping("/api/user")
 // @CrossOrigin 제거, SecurityConfig에서 CORS 관리 권장
 public class UserController {
 

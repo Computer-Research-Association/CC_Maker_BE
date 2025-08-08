@@ -18,8 +18,8 @@ public class UserUpdateRequestDto {
     private String email;
     
     // 선택적 필드들 (프론트엔드에서 전송하지 않을 수 있음)
-    private String birthdate; // YYYY-MM-DD 형식의 문자열
-    private String gender;
+    private String birthdate; // YYYY-MM-DD 형식의 문자열 (선택사항)
+    private String gender; // 선택사항
 
     // birthdate를 LocalDate로 변환하는 메서드
     public LocalDate getBirthdateAsLocalDate() {
