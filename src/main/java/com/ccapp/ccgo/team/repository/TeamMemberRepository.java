@@ -28,6 +28,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     // 유저(user)에 대해 isActive가 true인 TeamMember 리스트 반환
     List<TeamMember> findAllByUserAndIsActiveTrue(User user);
 
+
     // 팀별 멤버 목록
     List<TeamMember> findAllByTeamAndIsActiveTrue(Team team);
 
@@ -35,5 +36,9 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     boolean existsByUserAndTeam(User user, Team team);
 
     List<TeamMember> findByTeam_TeamIdAndIsActiveTrue(Long teamId);
+
+    List<TeamMember> findByUserAndTeamAndIsActiveTrue(User user, Team team);
+
+    boolean existsByUser_IdAndTeam_TeamIdAndIsActiveTrue(Long userId, Long teamId);
 
 }

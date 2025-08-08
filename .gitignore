@@ -203,6 +203,13 @@ application-*.properties
 /bin/
 
 # resources
-src/main/resources/application.properties
+.src/main/resources
+src/main/resources
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,intellij,java,gradle
+
+# pem 파일 (혹시나)
+*.pem
+
+# .gitignore
+.env

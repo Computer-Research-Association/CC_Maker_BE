@@ -1,36 +1,33 @@
 package com.ccapp.ccgo.matching.service;
 
 import com.ccapp.ccgo.matching.domain.MbtiScoreProvider;
-import com.ccapp.ccgo.matching.domain.entity.Answer;
-import com.ccapp.ccgo.matching.domain.entity.Question;
-import com.ccapp.ccgo.matching.domain.entity.SubGroup;
-import com.ccapp.ccgo.matching.domain.entity.SubGroupMember;
-import com.ccapp.ccgo.question.dto.AnswerRequestDto;
+import com.ccapp.ccgo.matching.domain.PairMatch;
+import com.ccapp.ccgo.matching.domain.entity.*;
 import com.ccapp.ccgo.matching.dto.MatchingResponseDto;
 import com.ccapp.ccgo.matching.dto.MatchingResultDto;
-import com.ccapp.ccgo.matching.repository.SubGroupMemberRepository;
-import com.ccapp.ccgo.matching.repository.SubGroupRepository;
+import com.ccapp.ccgo.matching.repository.*;
+import com.ccapp.ccgo.question.dto.AnswerRequestDto;
 import com.ccapp.ccgo.question.dto.QuestionRequestDto;
 import com.ccapp.ccgo.question.dto.QuestionResponseDto;
 import com.ccapp.ccgo.question.dto.QuestionUpdateDto;
 import com.ccapp.ccgo.question.repository.AnswerRepository;
 import com.ccapp.ccgo.question.repository.QuestionRepository;
+import com.ccapp.ccgo.team.entity.Team;
+import com.ccapp.ccgo.team.entity.TeamMember;
 import com.ccapp.ccgo.team.repository.TeamMemberRepository;
 import com.ccapp.ccgo.team.repository.TeamRepository;
 import com.ccapp.ccgo.user.dto.UserResponseDto;
-import com.ccapp.ccgo.team.entity.Team;
-import com.ccapp.ccgo.team.entity.TeamMember;
 import com.ccapp.ccgo.user.entity.User;
 import com.ccapp.ccgo.user.repository.UserRepository;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MatchingService {
@@ -41,380 +38,169 @@ public class MatchingService {
     private final SubGroupRepository subGroupRepository;
     private final SubGroupMemberRepository subGroupMemberRepository;
     private final TeamRepository teamRepository;
-    // 가중치
+    private final UserRepository userRepository;
+    private final MbtiScoreProvider mbtiScoreProvider;
+
+    private static final int MAX_GROUP_SIZE = 4;
     private static final double MBTI_WEIGHT = 0.5;
     private static final double SIMILARITY_WEIGHT = 0.5;
 
-    private final MbtiScoreProvider mbtiScoreProvider;
-    private final UserRepository userRepository;
-
     @Transactional
     public MatchingResponseDto performMatching(Long teamId) {
-
-        // 1. 팀 정보 가져오기
-        // 해당 팀에 소속된 팀원 전체 가져옴
-        // 팀원이 없다면 (비어있다면) IllegalArgumentException
         List<TeamMember> members = teamMemberRepository.findByTeam_TeamIdAndIsActiveTrue(teamId);
-
-        if (members.isEmpty()) {
-            throw new IllegalArgumentException("해당 팀(" + teamId + ")에 유저가 없습니다.");
-        }
-
-        Map<Long, TeamMember> memberMap = members.stream()
-                .collect(Collectors.toMap(tm -> tm.getUser().getId(), tm -> tm));
-
-
-
         Team team = members.get(0).getTeam();
 
-        // 2. 남/여 그룹 나누기
+        List<TeamMember> males = members.stream().filter(m -> "MALE".equalsIgnoreCase(m.getUser().getGender())).collect(Collectors.toList());
+        List<TeamMember> females = members.stream().filter(m -> "FEMALE".equalsIgnoreCase(m.getUser().getGender())).collect(Collectors.toList());
 
-        // 남자 리스트
-        List<TeamMember> males = members.stream()
-                .filter(m -> "MALE".equalsIgnoreCase(m.getUser().getGender()))
-                .collect(Collectors.toList());
+        List<PairMatch> matchCandidates = createPairMatchCandidates(males, females, teamId);
+        matchCandidates.sort(Comparator.comparingDouble(PairMatch::getTotalScore).reversed());
 
-        // 여자 리스트
-        List<TeamMember> females = members.stream()
-                .filter(m -> "FEMALE".equalsIgnoreCase(m.getUser().getGender()))
-                .collect(Collectors.toList());
-
-        List<TeamMember> groupA;
-        List<TeamMember> groupB;
-
-        // 기준 잡기
-        // 수가 적은 쪽이 기준 / 수가 같을 경우 남자가 기준
-        if (males.size() < females.size()) {
-            groupA = males;
-            groupB = females;
-        } else if (females.size() < males.size()) {
-            groupA = females;
-            groupB = males;
-        } else {
-            groupA = males;
-            groupB = females;
-        }
-
-        // 3. 후보 리스트 Map 생성
-        // Map을 통한 후보 리스트 조합 생성 (groupA 의 각 멤버별로 groupB 와 전부 조합)
-        Map<Long, List<PairMatch>> candidateMap = createCandidateMap(groupA, groupB, teamId);
-
-        // 4. 모든 쌍 점수 계산
-        // 후보 Map에 담긴 후보들로 A-B 모든 쌍 생성, 다시 MBTI + 유사도 점수 합산
-        // PairMatch 객체에 저장
-        List<PairMatch> pairMatches = generateAllPairMatches(candidateMap, memberMap);
-
-        // 5. 점수 내림차순 정렬
-        pairMatches.sort(Comparator.comparingDouble(PairMatch::getTotalScore).reversed());
-
-        // 6. Greedy 매칭 수행
-        // 이미 매칭된 유저가 포함된 쌍은 건너뜀
-        // 새로 생성되는 그룹은 SubGroup
-        // SubGroupMember 테이블에 두 사람 매핑
-        // 매칭 시 그룹명은 팀이름 + index (홍길통A1, 홍길동A2 ...)
-        Set<Long> matchedUserIds = new HashSet<>();
-        List<SubGroup> subGroups = new ArrayList<>();
+        Set<Long> usedMaleIds = new HashSet<>();
+        Set<Long> usedFemaleIds = new HashSet<>();
+        List<SubGroup> groups = new ArrayList<>();
         int groupIndex = 1;
 
-        for (PairMatch pair : pairMatches) {
-            if (matchedUserIds.contains(pair.userA.getUser().getId())
-                    || matchedUserIds.contains(pair.userB.getUser().getId())) {
-                continue;
-            }
+        for (PairMatch pair : matchCandidates) {
+            Long maleId = pair.getMale().getUser().getId();
+            Long femaleId = pair.getFemale().getUser().getId();
+            if (usedMaleIds.contains(maleId) || usedFemaleIds.contains(femaleId)) continue;
 
-            String groupName = team.getTeamName() + groupIndex;
-            List<User> groupMembers = List.of(pair.userA.getUser(), pair.userB.getUser());
+            String groupName = team.getTeamName() + groupIndex++;
+            SubGroup group = SubGroup.builder().team(team).name(groupName).memberCount(2).build();
+            subGroupRepository.save(group);
 
-            SubGroup sg = SubGroup.builder()
-                    .team(team)
-                    .name(groupName)
-                    .memberCount(groupMembers.size())
-                    .build();
-            subGroupRepository.save(sg);
+            saveSubGroupMember(group, pair.getMale().getUser());
+            saveSubGroupMember(group, pair.getFemale().getUser());
 
-            for (User user : groupMembers) {
-                saveSubGroupMember(sg, user);
-            }
-
-            matchedUserIds.add(pair.userA.getUser().getId());
-            matchedUserIds.add(pair.userB.getUser().getId());
-
-            subGroups.add(sg);
-            groupIndex++;
+            usedMaleIds.add(maleId);
+            usedFemaleIds.add(femaleId);
+            groups.add(group);
         }
 
-        // 7. 잉여 처리
-        handleLeftovers(groupA, groupB, matchedUserIds, team, groupIndex, subGroups);
+        List<TeamMember> leftoverMales = males.stream().filter(m -> !usedMaleIds.contains(m.getUser().getId())).collect(Collectors.toList());
+        List<TeamMember> leftoverFemales = females.stream().filter(f -> !usedFemaleIds.contains(f.getUser().getId())).collect(Collectors.toList());
 
-        // 8. 결과 DTO 변환
-        return buildMatchingResponseDto(team, subGroups);
+        handleLeftovers(leftoverMales, leftoverFemales, groups, team, groupIndex, teamId);
+
+        return buildMatchingResponseDto(team, groups);
     }
 
-    // groupA의 각 멤버에게 groupB 중 top N 후보자 리스트를 만들어줌
-    // 점수 높은 순서대로 5명 (동점자 포함) 까지
-    private Map<Long, List<PairMatch>> createCandidateMap(List<TeamMember> groupA,
-                                                           List<TeamMember> groupB,
-                                                           Long teamId) {
-        Map<Long, List<PairMatch>> candidateMap = new HashMap<>();
-
-        for (TeamMember tmA : groupA) {
-            List<PairMatch> tempList = new ArrayList<>();
-
-            for (TeamMember tmB : groupB) {
-                int mbtiScore = calculateMbtiTotalScore(tmA, tmB);
-                double similarityScore = calculateSimilarityScore(tmA, tmB, teamId);
-                // 가중치 계산으로 조정
-                double totalScore = mbtiScore * MBTI_WEIGHT + similarityScore * SIMILARITY_WEIGHT;
-
-                tempList.add(new PairMatch(tmA, tmB, totalScore));
+    private List<PairMatch> createPairMatchCandidates(List<TeamMember> males, List<TeamMember> females, Long teamId) {
+        List<PairMatch> result = new ArrayList<>();
+        for (TeamMember m : males) {
+            for (TeamMember f : females) {
+                double mbti = calculateMbtiScore(m, f);
+                double sim = calculateSimilarity(m, f, teamId);
+                result.add(new PairMatch(m, f, mbti * MBTI_WEIGHT + sim * SIMILARITY_WEIGHT));
             }
+        }
+        return result;
+    }
 
-            tempList.sort(Comparator.comparingDouble(PairMatch::getTotalScore).reversed());
+    private double calculateSimilarity(TeamMember a, TeamMember b, Long teamId) {
+        List<Question> questions = questionRepository.findByTeam_TeamId(teamId);
+        int totalSim = 0;
 
-            List<PairMatch> topCandidates = new ArrayList<>();
-            double lastScore = -1;
+        for (Question q : questions) {
+            int sa = answerRepository.findByUser_IdAndQuestionId(a.getUser().getId(), q.getId()).map(Answer::getScore).orElse(0);
+            int sb = answerRepository.findByUser_IdAndQuestionId(b.getUser().getId(), q.getId()).map(Answer::getScore).orElse(0);
+            totalSim += Math.max(0, 5 - Math.abs(sa - sb));
+        }
 
-            for (int i = 0; i < tempList.size(); i++) {
-                PairMatch pm = tempList.get(i);
-                if (i < 5) {
-                    topCandidates.add(pm);
-                    lastScore = pm.totalScore;
-                } else if (pm.totalScore == lastScore) {
-                    topCandidates.add(pm);
-                } else {
+        return questions.isEmpty()
+                ? 0
+                : (double) totalSim / (5 * questions.size()) * 100;
+    }
+
+    private double calculateMbtiScore(TeamMember a, TeamMember b) {
+        String mbtiA = a.getMbti();
+        String mbtiB = b.getMbti();
+        if (mbtiA == null || mbtiB == null) return 0;
+        return mbtiScoreProvider.getScore(mbtiA, mbtiB) + mbtiScoreProvider.getScore(mbtiB, mbtiA);
+    }
+
+    private void handleLeftovers(List<TeamMember> males, List<TeamMember> females, List<SubGroup> groups, Team team, int groupIndex, Long teamId) {
+        if (males.size() == 2) {
+            SubGroup g = SubGroup.builder().team(team).name(team.getTeamName() + groupIndex++).memberCount(2).build();
+            subGroupRepository.save(g);
+            saveSubGroupMember(g, males.get(0).getUser());
+            saveSubGroupMember(g, males.get(1).getUser());
+            groups.add(g);
+        } else if (males.size() == 1) {
+            SubGroup best = findBestGroupToInsert(males.get(0), groups, teamId);
+            if (best != null && best.getMemberCount() < MAX_GROUP_SIZE) {
+                saveSubGroupMember(best, males.get(0).getUser());
+                best.setMemberCount(best.getMemberCount() + 1);
+                subGroupRepository.save(best);
+            }
+        }
+
+        for (TeamMember female : females) {
+            for (SubGroup group : groups.stream().sorted(Comparator.comparingInt(SubGroup::getMemberCount)).collect(Collectors.toList())) {
+                if (group.getMemberCount() >= MAX_GROUP_SIZE) continue;
+                if (isFemaleInsertable(group, female, females.size())) {
+                    saveSubGroupMember(group, female.getUser());
+                    group.setMemberCount(group.getMemberCount() + 1);
+                    subGroupRepository.save(group);
                     break;
                 }
             }
-
-            candidateMap.put(tmA.getUser().getId(), topCandidates);
         }
-
-        return candidateMap;
     }
 
-    // candidateMap 기반으로 모든 (A,B) 쌍에 대해 PairMatch 생성
-    // 다시 MBTI 점수 + 질문 유사도 점수 계산
-    private List<PairMatch> generateAllPairMatches(Map<Long, List<PairMatch>> candidateMap,
-                                                   Map<Long, TeamMember> memberMap) {
-        List<PairMatch> pairs = new ArrayList<>();
-
-        for (List<PairMatch> pairList : candidateMap.values()) {
-            pairs.addAll(pairList);
+    private boolean isFemaleInsertable(SubGroup group, TeamMember female, int totalFemaleLeft) {
+        List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(group.getId());
+        long femaleNum = members.stream().filter(m -> "FEMALE".equalsIgnoreCase(m.getUser().getGender())).count();
+        long maleNum = members.size() - femaleNum;
+        if ("FEMALE".equalsIgnoreCase(female.getUser().getGender())) {
+            if (maleNum > 1 && femaleNum == 0 && totalFemaleLeft > 1) return false;
         }
-
-        return pairs;
+        return true;
     }
 
+    private SubGroup findBestGroupToInsert(TeamMember tm, List<SubGroup> groups, Long teamId) {
+        return groups.stream()
+                .filter(g -> g.getMemberCount() < MAX_GROUP_SIZE)
+                .max(Comparator.comparingDouble(g -> calculateAverageSimilarity(tm, g, teamId)))
+                .orElse(null);
+    }
 
-    // A→B, B→A MBTI 점수를 각각 구해서 합산
-    // 대칭적이지 않을 수도 있다는 점 고려 (현재 데이터는 대칭적임)
-    private int calculateMbtiTotalScore(TeamMember a, TeamMember b) {
-        String mbtiA = a.getMbti();
-        String mbtiB = b.getMbti();
-        if (mbtiA == null || mbtiB == null) {
-            return 0; // mbti가 없으면 점수 0 처리하거나, 다른 정책 적용
+    private double calculateAverageSimilarity(TeamMember user, SubGroup group, Long teamId) {
+        List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(group.getId());
+        double total = 0;
+        for (SubGroupMember m : members) {
+            TeamMember tm = teamMemberRepository.findByUser_IdAndTeam_TeamId(m.getUser().getId(), teamId).orElseThrow();
+            total += calculateSimilarity(user, tm, teamId);
         }
-        int scoreAtoB = mbtiScoreProvider.getScore(mbtiA, mbtiB);
-        int scoreBtoA = mbtiScoreProvider.getScore(mbtiB, mbtiA);
-        return scoreAtoB + scoreBtoA;
+        return members.isEmpty() ? 0 : total / members.size();
     }
 
-    // 팀별로 등록된 질문 리스트 조회
-    // 각 질문 별로 A와 B의 점수 차이를 계산 → 유사도 환산
-    // 차이가 0이면 유사도 5, 차이가 5면 유사도 0
-    // 전체 유사도 점수 → 100% 환산
-    private double calculateSimilarityScore(TeamMember a, TeamMember b, Long teamId) {
-        Long userIdA = a.getUser().getId();
-        Long userIdB = b.getUser().getId();
-
-        List<Answer> answersA = answerRepository.findByUser_Id(userIdA);
-        List<Answer> answersB = answerRepository.findByUser_Id(userIdB);
-
-        // 팀별 질문 수 확보
-        List<Question> questions = questionRepository.findByTeam_TeamId(teamId);
-        int totalQuestions = questions.size();
-
-        int totalSimilarity = 0;
-
-        for (Question q : questions) {
-            int scoreA = answersA.stream()
-                    .filter(ans -> ans.getQuestionId().equals(q.getId()))
-                    .map(Answer::getScore)
-                    .findFirst()
-                    .orElse(0);
-
-            int scoreB = answersB.stream()
-                    .filter(ans -> ans.getQuestionId().equals(q.getId()))
-                    .map(Answer::getScore)
-                    .findFirst()
-                    .orElse(0);
-
-            int diff = Math.abs(scoreA - scoreB);
-            int similarity = 5 - diff;  // 상수를 질문 수로 바꿔주면 된다.
-            totalSimilarity += similarity;
-        }
-
-        Double similarityRate = (double) totalSimilarity / (5 * totalQuestions);
-        return similarityRate * 100;
+    private void saveSubGroupMember(SubGroup group, User user) {
+        SubGroupMember m = SubGroupMember.builder().subGroup(group).user(user).build();
+        subGroupMemberRepository.save(m);
     }
 
-    // 6. Greedy 매칭 결과 저장
-    private void saveSubGroupMember(SubGroup sg, User user) {
-        SubGroupMember sgm = SubGroupMember.builder()
-                .subGroup(sg)
-                .user(user)
-                .build();
-        subGroupMemberRepository.save(sgm);
-    }
-
-    // 7. 잉여 처리
-    private void handleLeftovers(List<TeamMember> groupA,
-                                 List<TeamMember> groupB,
-                                 Set<Long> matchedUserIds,
-                                 Team team,
-                                 int groupIndex,
-                                 List<SubGroup> subGroups) {
-
-        // 그룹 이름 중복 방지
-        Set<String> existingGroupNames = subGroups.stream()
-                .map(SubGroup::getName)
-                .collect(Collectors.toSet());
-
-        List<TeamMember> leftovers = new ArrayList<>();
-        groupA.stream()
-                .filter(tm -> !matchedUserIds.contains(tm.getUser().getId()))
-                .forEach(leftovers::add);
-        groupB.stream()
-                .filter(tm -> !matchedUserIds.contains(tm.getUser().getId()))
-                .forEach(leftovers::add);
-
-        Iterator<TeamMember> it = leftovers.iterator();
-
-        while (it.hasNext()) {
-            TeamMember tm1 = it.next();
-            if (it.hasNext()) {
-                TeamMember tm2 = it.next();
-
-                // 잉여 그룹 이름 생성
-                String groupName;
-                do {
-                    groupName = team.getTeamName() + groupIndex;
-                    groupIndex++;
-                } while (existingGroupNames.contains(groupName));
-                existingGroupNames.add(groupName);
-
-                List<User> groupMembers = List.of(tm1.getUser(), tm2.getUser());
-
-                SubGroup sg = SubGroup.builder()
-                        .team(team)
-                        .name(groupName)
-                        .memberCount(groupMembers.size())
+    private MatchingResponseDto buildMatchingResponseDto(Team team, List<SubGroup> groups) {
+        List<MatchingResultDto> result = groups.stream().map(g -> {
+            List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(g.getId());
+            List<UserResponseDto> users = members.stream().map(m -> {
+                User u = m.getUser();
+                TeamMember tm = teamMemberRepository.findByUser_IdAndTeam_TeamId(u.getId(), team.getTeamId()).orElseThrow();
+                return UserResponseDto.builder()
+                        .id(u.getId())
+                        .email(u.getEmail())
+                        .name(u.getName())
+                        .gender(u.getGender())
+                        .birthdate(u.getBirthdate())
+                        .createdAt(u.getCreatedAt())
+                        .mbti(tm.getMbti())
                         .build();
-                subGroupRepository.save(sg);
+            }).collect(Collectors.toList());
+            return new MatchingResultDto(g.getId(), g.getName(), users);
+        }).collect(Collectors.toList());
 
-                for (User user : groupMembers) {
-                    saveSubGroupMember(sg, user);
-                }
-
-                subGroups.add(sg);
-
-            } else {
-                // 홀수 남음 → 기존 그룹 중 가장 점수(각각의 유사도 점수 구한 뒤의 평균) 높은 그룹으로 편입
-                if (!subGroups.isEmpty()) {
-                    double maxAvgSimilarity = Double.NEGATIVE_INFINITY;
-                    SubGroup bestGroup = null;
-
-                    for (SubGroup sg : subGroups) {
-                        List<SubGroupMember> members =
-                                subGroupMemberRepository.findBySubGroup_Id(sg.getId());
-
-                        double totalSimilarity = 0;
-                        int memberCount = 0;
-
-                        for (SubGroupMember sgm : members) {
-                            TeamMember existingTm = teamMemberRepository
-                                    .findByUser_IdAndTeam_TeamId(sgm.getUser().getId(), team.getTeamId())
-                                    .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
-
-                            double similarityScore =
-                                    calculateSimilarityScore(tm1, existingTm, team.getTeamId());
-
-                            totalSimilarity += similarityScore;
-                            memberCount++;
-                        }
-
-                        double avgSimilarity = memberCount > 0 ? totalSimilarity / memberCount : 0;
-
-                        if (avgSimilarity > maxAvgSimilarity) {
-                            maxAvgSimilarity = avgSimilarity;
-                            bestGroup = sg;
-                        }
-                    }
-
-                    if (bestGroup != null) {
-                        saveSubGroupMember(bestGroup, tm1.getUser());
-
-                        long newCount =
-                                subGroupMemberRepository.countBySubGroup_Id(bestGroup.getId());
-                        bestGroup.setMemberCount((int) newCount);
-                        subGroupRepository.save(bestGroup);
-                    }
-                } else {
-                    System.out.println("[WARN] 홀수 남았지만 기존 그룹 없음. 유저ID: " + tm1.getUser().getId());
-                }
-            }
-        }
-    }
-
-    // 8. 결과 DTO 생성
-    private MatchingResponseDto buildMatchingResponseDto(Team team, List<SubGroup> subGroups) {
-        List<MatchingResultDto> resultDtos = new ArrayList<>();
-
-        for (SubGroup sg : subGroups) {
-            List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(sg.getId());
-
-            List<UserResponseDto> userDtos = members.stream()
-                    .map(sgm -> {
-                        User user = sgm.getUser();
-
-                        // 유저와 팀 기반으로 TeamMember 정보 조회
-                        TeamMember teamMember = teamMemberRepository.findByUser_IdAndTeam_TeamId(user.getId(), team.getTeamId())
-                                .orElseThrow(() -> new IllegalArgumentException("TeamMember not found"));
-
-                        return UserResponseDto.builder()
-                                .id(user.getId())
-                                .name(user.getName())
-                                .email(user.getEmail())
-                                .gender(user.getGender())
-                                .mbti(teamMember.getMbti())  // ✅ 여기에서 MBTI 가져오기
-                                .build();
-                    })
-                    .collect(Collectors.toList());
-
-            resultDtos.add(MatchingResultDto.builder()
-                    .subGroupId(sg.getId())
-                    .groupName(sg.getName())
-                    .members(userDtos)
-                    .build());
-        }
-
-        return MatchingResponseDto.builder()
-                .teamId(team.getTeamId())
-                .teamName(team.getTeamName())
-                .subGroups(resultDtos)
-                .build();
-    }
-
-
-    /**
-     * 내부 클래스 PairMatch
-     */
-    @Data
-    @AllArgsConstructor
-    static class PairMatch {
-        private TeamMember userA;
-        private TeamMember userB;
-        private double totalScore;
+        return new MatchingResponseDto(team.getTeamId(), team.getTeamName(), true, result);
     }
 
 
@@ -461,7 +247,6 @@ public class MatchingService {
             teamMemberRepository.save(teamMember);
         }
     }
-
 
     // 한 번에 여러 개의 새로운 Question을 DB에 등록
     @Transactional
@@ -512,6 +297,36 @@ public class MatchingService {
         answerRepository.deleteAll(answers);
         // 마지막으로 Question 자체 삭제
         questionRepository.deleteById(questionId);
+    }
+
+    //실험
+    @Transactional(readOnly = true)
+    public List<String> getMatchedUserNames(Long userId, Long teamId) {
+        // 1. 유저 존재 확인
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다."));
+
+        // 2. 팀 소속 여부 확인 (활성 멤버만)
+        boolean isMember = teamMemberRepository.existsByUser_IdAndTeam_TeamIdAndIsActiveTrue(userId, teamId);
+        if (!isMember) {
+            throw new RuntimeException("해당 팀에 소속되어 있지 않습니다.");
+        }
+
+        // 3. 유저가 속한 SubGroup 멤버(본인 제외) 조회
+        List<User> matchedUsers = subGroupMemberRepository.findTeamMatchedMembersExcludingUser(userId, teamId);
+
+        // 4. 이름만 리스트로 변환 후 반환
+        return matchedUsers.stream()
+                .map(User::getName)
+                .collect(Collectors.toList());
+    }
+
+
+
+    //매칭된 직후 발동하는놈
+    public Long findSubGroupIdByTeamIdAndUserId(Long teamId, Long userId) {
+        return subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId)
+                .orElse(null); // 없으면 null 반환 (적절히 처리)
     }
 
 

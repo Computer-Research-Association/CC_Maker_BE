@@ -20,9 +20,13 @@ import java.time.LocalDateTime;
 @Table(name = "invite_code")
 public class InviteCode {
 
+
     // PK - 초대 코드 (랜덤 문자열, 8자리)
     @Id
-    @Column(length = 8)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(length = 8, nullable = false, unique = true)
     private String code;
 
     // FK - 팀 ID

@@ -1,12 +1,14 @@
 package com.ccapp.ccgo.auth.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 
-@Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class TokenResponseDto {
     private String accessToken;
     private String refreshToken;

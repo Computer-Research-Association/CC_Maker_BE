@@ -3,11 +3,15 @@ import com.ccapp.ccgo.auth.jwt.LoginUserDetails;
 
 
 import com.ccapp.ccgo.question.dto.SurveyCompleteRequest;
+import com.ccapp.ccgo.team.dto.SetMinScoreRequest;
 import com.ccapp.ccgo.team.dto.SurveyStatusDto;
+import com.ccapp.ccgo.team.dto.TeamMatchingStatusDto;
+import com.ccapp.ccgo.team.entity.Team;
 import com.ccapp.ccgo.team.service.TeamMemberService;
 import com.ccapp.ccgo.team.dto.TeamResponseDto;
 import com.ccapp.ccgo.team.entity.TeamMember;
 import com.ccapp.ccgo.team.repository.TeamMemberRepository;
+import com.ccapp.ccgo.team.service.TeamService;
 import com.ccapp.ccgo.user.entity.User;
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +30,7 @@ public class TeamController {
 
     private final TeamMemberService teamMemberService;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamService teamService;
 
     @GetMapping("/mine")
     public ResponseEntity<List<TeamResponseDto>> getMyTeams(
@@ -45,7 +50,6 @@ public class TeamController {
 
         return ResponseEntity.ok(result);
     }
-
 
     @PostMapping("/survey/complete")
     public ResponseEntity<Void> completeSurvey(@RequestBody SurveyCompleteRequest request,
@@ -78,6 +82,22 @@ public class TeamController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/{teamId}")
+    public ResponseEntity<TeamMatchingStatusDto> getTeamInfo(@PathVariable Long teamId) {
+        return ResponseEntity.ok(teamMemberService.getTeamInfo(teamId));
+    }
 
 
+    
+    //최소 학점 설정하는부분
+    @PostMapping("/{teamId}/min-credit")
+    public ResponseEntity<Void> setMinCredit(
+            @PathVariable Long teamId,
+            @RequestBody SetMinScoreRequest request,
+            @AuthenticationPrincipal LoginUserDetails loginUserDetails) {
+
+        Long userId = loginUserDetails.getUser().getId();
+        teamService.updateMinScore(teamId, userId, request.getMinScore());
+        return ResponseEntity.ok().build();
+    }
 }
