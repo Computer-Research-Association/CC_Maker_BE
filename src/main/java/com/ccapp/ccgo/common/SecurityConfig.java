@@ -56,7 +56,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // 인증 필요 없는 엔드포인트
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/register").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/user/register").permitAll()
 
                         // LEADER 전용 API (팀 관리)
                         .requestMatchers("/api/team/**").hasAnyRole("LEADER", "MEMBER")
