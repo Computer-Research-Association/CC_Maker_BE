@@ -43,14 +43,26 @@ public class SubGroupMissionService {
     }
 
     private void assignMissionsByScore(SubGroup subGroup, Integer score, int count) {
-        List<MissionTemplate> missions = missionTemplateRepository.findByScore(score);
+        // 1. 이미 할당된 미션 Template ID 목록 조회
+        List<Long> existingMissionTemplateIds = subGroupMissionRepository.findBySubGroup(subGroup).stream()
+                .map(m -> m.getMissionTemplate().getId())
+                .toList();
+
+        // 2. score 조건에 맞는 미션 템플릿 중 기존 할당 미션 제외
+        List<MissionTemplate> missions = missionTemplateRepository.findByScore(score).stream()
+                .filter(m -> !existingMissionTemplateIds.contains(m.getId()))
+                .toList();
+
+        // 3. 미션 개수 체크
         if (missions.size() < count) {
             throw new IllegalStateException(score + "점 미션이 최소 " + count + "개 이상 필요합니다.");
         }
 
+        // 4. 랜덤 섞고 필요한 개수만큼 선택
         Collections.shuffle(missions);
         List<MissionTemplate> selected = missions.subList(0, count);
 
+        // 5. 새 미션 할당
         for (MissionTemplate missionTemplate : selected) {
             SubGroupMission mission = SubGroupMission.builder()
                     .subGroup(subGroup)
@@ -60,6 +72,7 @@ public class SubGroupMissionService {
             subGroupMissionRepository.save(mission);
         }
     }
+
 
     // 미션 완료 처리
     @Transactional
