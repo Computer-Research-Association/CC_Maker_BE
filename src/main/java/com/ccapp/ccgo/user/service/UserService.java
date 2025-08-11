@@ -2,6 +2,8 @@ package com.ccapp.ccgo.user.service;
 
 import com.ccapp.ccgo.user.dto.UserRequestDto;
 import com.ccapp.ccgo.user.dto.UserResponseDto;
+import com.ccapp.ccgo.user.dto.UserUpdateRequestDto;
+import com.ccapp.ccgo.user.dto.PasswordChangeRequestDto;
 import com.ccapp.ccgo.user.mapper.UserMapper;
 import com.ccapp.ccgo.common.exception.CustomException;
 import com.ccapp.ccgo.auth.jwt.JwtProvider;
@@ -12,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -86,5 +89,101 @@ public class UserService {
             throw new CustomException("삭제할 사용자가 존재하지 않습니다.", HttpStatus.NOT_FOUND);
         }
         userRepository.deleteById(id);
+    }
+
+    // 7. 현재 로그인한 사용자 정보 조회
+    public UserResponseDto getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException("로그인한 사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND));
+        
+        return UserMapper.toDto(user);
+    }
+
+    // 8. 현재 사용자 정보 부분 업데이트 (PATCH)
+    public UserResponseDto updateCurrentUser(UserUpdateRequestDto dto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException("로그인한 사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND));
+        
+        // 이메일 중복 체크 (다른 사용자가 같은 이메일을 사용하고 있는지)
+        if (!email.equals(dto.getEmail())) {
+            userRepository.findByEmail(dto.getEmail())
+                    .ifPresent(existingUser -> {
+                        throw new CustomException("이미 사용 중인 이메일입니다.", HttpStatus.CONFLICT);
+                    });
+        }
+        
+        // 변경된 필드만 업데이트
+        UserMapper.updateEntityFromDto(user, dto);
+        
+        userRepository.save(user);
+        return UserMapper.toDto(user);
+    }
+
+    // 9. 현재 사용자 정보 전체 업데이트 (PUT)
+    public UserResponseDto updateCurrentUserFull(UserUpdateRequestDto dto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException("로그인한 사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND));
+        
+        // 이메일 중복 체크
+        if (!email.equals(dto.getEmail())) {
+            userRepository.findByEmail(dto.getEmail())
+                    .ifPresent(existingUser -> {
+                        throw new CustomException("이미 사용 중인 이메일입니다.", HttpStatus.CONFLICT);
+                    });
+        }
+        
+        // 모든 필드 업데이트
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        // birthdate와 gender는 선택적 필드이므로 null 체크
+        if (dto.getBirthdate() != null && !dto.getBirthdate().trim().isEmpty()) {
+            user.setBirthdate(dto.getBirthdateAsLocalDate());
+        }
+        if (dto.getGender() != null && !dto.getGender().trim().isEmpty()) {
+            user.setGender(dto.getGender());
+        }
+        
+        userRepository.save(user);
+        return UserMapper.toDto(user);
+    }
+
+    // 10. 비밀번호 변경
+    public void changePassword(PasswordChangeRequestDto dto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException("로그인한 사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND));
+        
+        // 현재 비밀번호 확인
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+            throw new CustomException("현재 비밀번호가 일치하지 않습니다.", HttpStatus.BAD_REQUEST);
+        }
+        
+        // 새 비밀번호로 변경
+        String encodedNewPassword = passwordEncoder.encode(dto.getNewPassword());
+        user.setPassword(encodedNewPassword);
+        
+        userRepository.save(user);
+    }
+
+    // 11. 현재 사용자 계정 삭제 (탈퇴)
+    public void deleteCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException("로그인한 사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND));
+        
+        userRepository.delete(user);
     }
 }

@@ -56,7 +56,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // 인증 필요 없는 엔드포인트
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/register").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/user/register").permitAll()
 
                         // LEADER 전용 API (팀 관리)
                         .requestMatchers("/api/team/**").hasAnyRole("LEADER", "MEMBER")
@@ -77,10 +77,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://192.168.29.245:8080"));    // 서비스 IP주소
+        config.setAllowedOrigins(List.of("*"));    // 모든 origin 허용 (개발용)
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(false);  // allowCredentials가 true면 allowedOrigins에 "*" 사용 불가
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;

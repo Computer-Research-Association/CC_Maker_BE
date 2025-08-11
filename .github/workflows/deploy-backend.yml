@@ -3,7 +3,7 @@ name: Deploy Spring Boot to EC2
 on:
   push:
     branches:
-      - DELredis
+      - test-mysql
 
 jobs:
   deploy:
@@ -63,5 +63,4 @@ jobs:
             docker rmi ccgo-app || true
             docker compose build
             docker compose up -d
-            
             
