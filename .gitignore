@@ -213,3 +213,6 @@ src/main/resources
 
 # .gitignore
 .env
+
+#
+.frontend
