@@ -51,7 +51,7 @@ public class SubGroupMissionService {
                 .collect(Collectors.toList());
 
         for (Long memberId : groupMemberIds) {
-            boolean hasExistingMission = subGroupMissionRepository.existsBySubGroup_Team_TeamIdAndSubGroup_SubGroupMembers_User_Id(
+            boolean hasExistingMission = subGroupMissionRepository.existsByTeamIdAndUserId(
                     subGroup.getTeam().getTeamId(), memberId);
             if (hasExistingMission) {
                 throw new IllegalStateException("사용자 ID " + memberId + "가 이미 다른 서브그룹에서 미션을 받았습니다.");
