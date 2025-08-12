@@ -227,7 +227,7 @@ public class SubGroupMissionService {
     @Transactional(readOnly = true)
     public List<MissionHistoryDto> getMissionHistoryByUser(Long userId, Long teamId) {
         try {
-            List<MissionHistory> histories = missionHistoryRepository.findByUser_IdAndTeam_IdOrderByCompletedAtDesc(userId, teamId);
+            List<MissionHistory> histories = missionHistoryRepository.findByUser_IdAndTeam_TeamIdOrderByCompletedAtDesc(userId, teamId);
             
             return histories.stream()
                     .map(this::convertToDto)

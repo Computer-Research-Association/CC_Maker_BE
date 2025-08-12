@@ -32,7 +32,7 @@ public class MissionHistory {
     private User user;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_id")
+    @JoinColumn(name = "team_id", referencedColumnName = "teamId")
     private Team team;
     
     @ManyToOne(fetch = FetchType.LAZY)
