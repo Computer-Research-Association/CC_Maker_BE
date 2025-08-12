@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 
@@ -224,11 +225,17 @@ public class SubGroupMissionService {
     // 사용자의 미션 히스토리 조회
     @Transactional(readOnly = true)
     public List<MissionHistoryDto> getMissionHistoryByUser(Long userId) {
-        List<MissionHistory> histories = missionHistoryRepository.findByUser_IdOrderByCompletedAtDesc(userId);
-        
-        return histories.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        try {
+            List<MissionHistory> histories = missionHistoryRepository.findByUser_IdOrderByCompletedAtDesc(userId);
+            
+            return histories.stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            // 테이블이 존재하지 않는 경우 등 오류 발생 시 빈 리스트 반환
+            System.err.println("미션 히스토리 조회 중 오류 발생: " + e.getMessage());
+            return new ArrayList<>();
+        }
     }
     
     // 팀의 미션 히스토리 조회
