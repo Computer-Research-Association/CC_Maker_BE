@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/mission/history")
@@ -29,8 +30,14 @@ public class MissionHistoryController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<MissionHistoryDto>> getMissionHistoryByUser(@PathVariable Long userId) {
         log.info("사용자 미션 히스토리 조회 요청: userId = {}", userId);
-        List<MissionHistoryDto> histories = subGroupMissionService.getMissionHistoryByUser(userId);
-        return ResponseEntity.ok(histories);
+        try {
+            List<MissionHistoryDto> histories = subGroupMissionService.getMissionHistoryByUser(userId);
+            return ResponseEntity.ok(histories);
+        } catch (Exception e) {
+            log.error("미션 히스토리 조회 중 오류 발생: {}", e.getMessage());
+            // 테이블이 존재하지 않는 경우 등 오류 발생 시 빈 리스트 반환
+            return ResponseEntity.ok(new ArrayList<>());
+        }
     }
     
     // 팀의 미션 히스토리 조회

@@ -11,6 +11,7 @@ import org.springframework.context.support.DefaultMessageSourceResolvable;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 
 import java.util.Map;
 @Slf4j
@@ -56,5 +57,12 @@ public class GlobalExceptionHandler {
         Map<String, String> errorResponse = new HashMap<>();
         errorResponse.put("error", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidDataAccessResourceUsageException.class)
+    public ResponseEntity<Map<String, String>> handleTableNotExists(InvalidDataAccessResourceUsageException ex) {
+        log.warn("테이블이 존재하지 않는 오류: {}", ex.getMessage());
+        // 테이블이 존재하지 않는 경우 200 OK와 빈 리스트를 반환하도록 프론트엔드에서 처리
+        return ResponseEntity.ok(Map.of("message", "데이터를 조회할 수 없습니다."));
     }
 }
