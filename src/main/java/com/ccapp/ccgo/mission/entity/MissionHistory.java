@@ -1,6 +1,7 @@
 package com.ccapp.ccgo.mission.entity;
 
 import com.ccapp.ccgo.matching.domain.entity.SubGroup;
+import com.ccapp.ccgo.team.entity.Team;
 import com.ccapp.ccgo.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,10 @@ public class MissionHistory {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private Team team;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "mission_template_id")

@@ -203,6 +203,7 @@ public class SubGroupMissionService {
         for (SubGroupMember member : members) {
             MissionHistory history = MissionHistory.builder()
                     .subGroup(subGroup)
+                    .team(subGroup.getTeam())
                     .user(member.getUser())
                     .missionTemplate(missionTemplate)
                     .completedAt(LocalDateTime.now())
@@ -222,11 +223,11 @@ public class SubGroupMissionService {
                 .collect(Collectors.toList());
     }
     
-    // 사용자의 미션 히스토리 조회
+    // 사용자의 미션 히스토리 조회 (팀별)
     @Transactional(readOnly = true)
-    public List<MissionHistoryDto> getMissionHistoryByUser(Long userId) {
+    public List<MissionHistoryDto> getMissionHistoryByUser(Long userId, Long teamId) {
         try {
-            List<MissionHistory> histories = missionHistoryRepository.findByUser_IdOrderByCompletedAtDesc(userId);
+            List<MissionHistory> histories = missionHistoryRepository.findByUser_IdAndTeam_IdOrderByCompletedAtDesc(userId, teamId);
             
             return histories.stream()
                     .map(this::convertToDto)
@@ -253,6 +254,8 @@ public class SubGroupMissionService {
         return MissionHistoryDto.builder()
                 .id(history.getId())
                 .subGroupId(history.getSubGroup().getId())
+                .teamId(history.getTeam().getTeamId())
+                .teamName(history.getTeam().getTeamName())
                 .userId(history.getUser().getId())
                 .userName(history.getUser().getName())
                 .missionTemplateId(history.getMissionTemplate().getId())

@@ -12,11 +12,11 @@ public interface MissionHistoryRepository extends JpaRepository<MissionHistory, 
     // 특정 서브그룹의 미션 히스토리 조회
     List<MissionHistory> findBySubGroup_IdOrderByCompletedAtDesc(Long subGroupId);
     
-    // 특정 사용자의 미션 히스토리 조회
-    List<MissionHistory> findByUser_IdOrderByCompletedAtDesc(Long userId);
+    // 특정 사용자의 미션 히스토리 조회 (팀별)
+    List<MissionHistory> findByUser_IdAndTeam_IdOrderByCompletedAtDesc(Long userId, Long teamId);
     
     // 특정 팀의 미션 히스토리 조회
-    @Query("SELECT mh FROM MissionHistory mh WHERE mh.subGroup.team.teamId = :teamId ORDER BY mh.completedAt DESC")
+    @Query("SELECT mh FROM MissionHistory mh WHERE mh.team.teamId = :teamId ORDER BY mh.completedAt DESC")
     List<MissionHistory> findByTeamIdOrderByCompletedAtDesc(@Param("teamId") Long teamId);
     
     // 특정 미션 템플릿의 완료 히스토리 조회

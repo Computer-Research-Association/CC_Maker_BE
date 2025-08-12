@@ -26,12 +26,14 @@ public class MissionHistoryController {
         return ResponseEntity.ok(histories);
     }
     
-    // 사용자의 미션 히스토리 조회
+    // 사용자의 미션 히스토리 조회 (팀별)
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<MissionHistoryDto>> getMissionHistoryByUser(@PathVariable Long userId) {
-        log.info("사용자 미션 히스토리 조회 요청: userId = {}", userId);
+    public ResponseEntity<List<MissionHistoryDto>> getMissionHistoryByUser(
+            @PathVariable Long userId,
+            @RequestParam Long teamId) {
+        log.info("사용자 미션 히스토리 조회 요청: userId = {}, teamId = {}", userId, teamId);
         try {
-            List<MissionHistoryDto> histories = subGroupMissionService.getMissionHistoryByUser(userId);
+            List<MissionHistoryDto> histories = subGroupMissionService.getMissionHistoryByUser(userId, teamId);
             return ResponseEntity.ok(histories);
         } catch (Exception e) {
             log.error("미션 히스토리 조회 중 오류 발생: {}", e.getMessage());

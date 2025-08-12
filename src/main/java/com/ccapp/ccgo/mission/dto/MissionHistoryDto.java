@@ -16,6 +16,8 @@ public class MissionHistoryDto {
     private Long id;
     private Long subGroupId;
     private String subGroupName; // 서브그룹 이름 (필요시)
+    private Long teamId;
+    private String teamName; // 팀 이름
     private Long userId;
     private String userName; // 사용자 이름
     private Long missionTemplateId;

@@ -50,7 +50,7 @@ jobs:
 
           echo "MYSQL_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASS }}"          >> deploy/.env
 
-          echo "SPRING_JPA_HIBERNATE_DDL_AUTO=update"                     >> deploy/.env
+          echo "SPRING_JPA_HIBERNATE_DDL_AUTO=update"                     >> deploy/.env  
       
 
       - name: Upload app.jar and .env to EC2
