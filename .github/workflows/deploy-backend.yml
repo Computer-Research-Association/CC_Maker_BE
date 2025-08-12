@@ -33,13 +33,25 @@ jobs:
 
       - name: Create .env file for prod
         run: |
-          echo "SPRING_DATASOURCE_URL=${{ secrets.DEPLOY_DB_URL }}" >> deploy/.env
+          echo "SPRING_DATASOURCE_URL=${{ secrets.DEPLOY_DB_URL }}"       >> deploy/.env
           echo "SPRING_DATASOURCE_USERNAME=${{ secrets.DEPLOY_DB_USER }}" >> deploy/.env
           echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.DEPLOY_DB_PASS }}" >> deploy/.env
+
+          echo "DB_ROOT_PASS=${{ secrets.DB_ROOT_PASS }}"                 >> deploy/.env
+
+          echo "DB_URL=${{ secrets.DB_URL }}"                             >> deploy/.env
+          echo "DB_USER=${{ secrets.DB_USER }}"                           >> deploy/.env
+          echo "DB_PASS=${{ secrets.DB_PASS }}"                           >> deploy/.env
+
           echo "SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver" >> deploy/.env
-          echo "JWT_SECRET=${{ secrets.DEPLOY_JWT_SECRET }}" >> deploy/.env
-          echo "JWT_ACCESS_TOKEN_EXPIRATION=86400000" >> deploy/.env
-          echo "JWT_REFRESH_TOKEN_EXPIRATION=604800000" >> deploy/.env
+          echo "JWT_SECRET=${{ secrets.DEPLOY_JWT_SECRET }}"              >> deploy/.env
+          echo "JWT_ACCESS_TOKEN_EXPIRATION=86400000"                     >> deploy/.env
+          echo "JWT_REFRESH_TOKEN_EXPIRATION=604800000"                   >> deploy/.env
+
+          echo "MYSQL_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASS }}"          >> deploy/.env
+
+          echo "SPRING_JPA_HIBERNATE_DDL_AUTO=update"                     >> deploy/.env
+      
 
       - name: Upload app.jar and .env to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -63,4 +75,3 @@ jobs:
             docker rmi ccgo-app || true
             docker compose build
             docker compose up -d
-            
