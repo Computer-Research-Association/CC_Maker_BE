@@ -121,6 +121,12 @@ public class MatchingService {
     }
 
     private void handleLeftovers(List<TeamMember> males, List<TeamMember> females, List<SubGroup> groups, Team team, int groupIndex, Long teamId) {
+        // 남자만 있는 경우 처리
+        if (females.isEmpty() && !males.isEmpty()) {
+            handleMaleOnlyGroups(males, groups, team, groupIndex, teamId);
+            return;
+        }
+        
         if (males.size() == 2) {
             SubGroup g = SubGroup.builder().team(team).name(team.getTeamName() + groupIndex++).memberCount(2).build();
             subGroupRepository.save(g);
@@ -145,6 +151,31 @@ public class MatchingService {
                     subGroupRepository.save(group);
                     break;
                 }
+            }
+        }
+    }
+    
+    // 남자만 있는 경우 그룹 생성 (2명씩 커플로)
+    private void handleMaleOnlyGroups(List<TeamMember> males, List<SubGroup> groups, Team team, int groupIndex, Long teamId) {
+        int maleCount = males.size();
+        
+        // 2명씩 커플로 만들기
+        for (int i = 0; i < maleCount; i += 2) {
+            int endIndex = Math.min(i + 2, maleCount);
+            List<TeamMember> groupMembers = males.subList(i, endIndex);
+            
+            if (groupMembers.size() >= 2) { // 2명 이상일 때만 그룹 생성
+                SubGroup group = SubGroup.builder()
+                        .team(team)
+                        .name(team.getTeamName() + groupIndex++)
+                        .memberCount(groupMembers.size())
+                        .build();
+                subGroupRepository.save(group);
+                
+                for (TeamMember member : groupMembers) {
+                    saveSubGroupMember(group, member.getUser());
+                }
+                groups.add(group);
             }
         }
     }
