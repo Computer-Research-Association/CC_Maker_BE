@@ -13,5 +13,7 @@ public interface SubGroupMissionRepository extends JpaRepository<SubGroupMission
 
     Optional<SubGroupMission> findBySubGroupAndMissionTemplateId(SubGroup subGroup, Long missionTemplateId);
 
+    // 사용자가 이미 미션을 받았는지 체크하는 메서드
+    boolean existsBySubGroup_Team_TeamIdAndSubGroup_SubGroupMembers_User_Id(Long teamId, Long userId);
 
 }

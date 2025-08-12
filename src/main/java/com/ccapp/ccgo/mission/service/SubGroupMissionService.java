@@ -1,14 +1,19 @@
 package com.ccapp.ccgo.mission.service;
 
 import com.ccapp.ccgo.matching.domain.entity.SubGroup;
+import com.ccapp.ccgo.matching.domain.entity.SubGroupMember;
 import com.ccapp.ccgo.matching.repository.SubGroupRepository;
+import com.ccapp.ccgo.matching.repository.SubGroupMemberRepository;
 import com.ccapp.ccgo.mission.dto.ScoreboardResponseDto;
 import com.ccapp.ccgo.mission.dto.SubGroupMissionDto;
 import com.ccapp.ccgo.mission.dto.SubGroupScoreDto;
+import com.ccapp.ccgo.mission.dto.MissionHistoryDto;
 import com.ccapp.ccgo.mission.entity.MissionTemplate;
 import com.ccapp.ccgo.mission.entity.SubGroupMission;
+import com.ccapp.ccgo.mission.entity.MissionHistory;
 import com.ccapp.ccgo.mission.repository.MissionTemplateRepository;
 import com.ccapp.ccgo.mission.repository.SubGroupMissionRepository;
+import com.ccapp.ccgo.mission.repository.MissionHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.stereotype.Service;
@@ -17,14 +22,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class SubGroupMissionService {
 
     private final SubGroupRepository subGroupRepository;
+    private final SubGroupMemberRepository subGroupMemberRepository;
     private final MissionTemplateRepository missionTemplateRepository;
     private final SubGroupMissionRepository subGroupMissionRepository;
+    private final MissionHistoryRepository missionHistoryRepository;
 
     // 서브그룹에 미션 부여
     @Transactional
@@ -36,33 +44,34 @@ public class SubGroupMissionService {
             throw new IllegalStateException("이미 이 서브그룹에 미션이 부여되어 있습니다.");
         }
 
-        assignMissionsByScore(subGroup, 1, 6);
+        // 그룹장 중복 미션 방지: 이미 미션을 받은 사용자가 있는지 체크
+        List<SubGroupMember> groupMembers = subGroupMemberRepository.findBySubGroup_Id(subGroupId);
+        List<Long> groupMemberIds = groupMembers.stream()
+                .map(member -> member.getUser().getId())
+                .collect(Collectors.toList());
+
+        for (Long memberId : groupMemberIds) {
+            boolean hasExistingMission = subGroupMissionRepository.existsBySubGroup_Team_TeamIdAndSubGroup_SubGroupMembers_User_Id(
+                    subGroup.getTeam().getTeamId(), memberId);
+            if (hasExistingMission) {
+                throw new IllegalStateException("사용자 ID " + memberId + "가 이미 다른 서브그룹에서 미션을 받았습니다.");
+            }
+        }
+ 
         assignMissionsByScore(subGroup, 3, 6);
         assignMissionsByScore(subGroup, 5, 6);
         assignMissionsByScore(subGroup, 10, 6);
     }
 
     private void assignMissionsByScore(SubGroup subGroup, Integer score, int count) {
-        // 1. 이미 할당된 미션 Template ID 목록 조회
-        List<Long> existingMissionTemplateIds = subGroupMissionRepository.findBySubGroup(subGroup).stream()
-                .map(m -> m.getMissionTemplate().getId())
-                .toList();
-
-        // 2. score 조건에 맞는 미션 템플릿 중 기존 할당 미션 제외
-        List<MissionTemplate> missions = missionTemplateRepository.findByScore(score).stream()
-                .filter(m -> !existingMissionTemplateIds.contains(m.getId()))
-                .toList();
-
-        // 3. 미션 개수 체크
+        List<MissionTemplate> missions = missionTemplateRepository.findByScore(score);
         if (missions.size() < count) {
             throw new IllegalStateException(score + "점 미션이 최소 " + count + "개 이상 필요합니다.");
         }
 
-        // 4. 랜덤 섞고 필요한 개수만큼 선택
         Collections.shuffle(missions);
         List<MissionTemplate> selected = missions.subList(0, count);
 
-        // 5. 새 미션 할당
         for (MissionTemplate missionTemplate : selected) {
             SubGroupMission mission = SubGroupMission.builder()
                     .subGroup(subGroup)
@@ -72,7 +81,6 @@ public class SubGroupMissionService {
             subGroupMissionRepository.save(mission);
         }
     }
-
 
     // 미션 완료 처리
     @Transactional
@@ -181,8 +189,71 @@ public class SubGroupMissionService {
 
         // 완료 처리
         mission.setCompleted(true);
+        
+        // 미션 히스토리에 저장
+        saveMissionHistory(subGroup, mission.getMissionTemplate());
     }
-
-
-
+    
+    // 미션 히스토리 저장
+    private void saveMissionHistory(SubGroup subGroup, MissionTemplate missionTemplate) {
+        // 서브그룹의 모든 멤버에 대해 히스토리 저장
+        List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(subGroup.getId());
+        
+        for (SubGroupMember member : members) {
+            MissionHistory history = MissionHistory.builder()
+                    .subGroup(subGroup)
+                    .user(member.getUser())
+                    .missionTemplate(missionTemplate)
+                    .completedAt(LocalDateTime.now())
+                    .build();
+            
+                    missionHistoryRepository.save(history);
+        }
+    }
+    
+    // 서브그룹의 미션 히스토리 조회
+    @Transactional(readOnly = true)
+    public List<MissionHistoryDto> getMissionHistoryBySubGroup(Long subGroupId) {
+        List<MissionHistory> histories = missionHistoryRepository.findBySubGroup_IdOrderByCompletedAtDesc(subGroupId);
+        
+        return histories.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    
+    // 사용자의 미션 히스토리 조회
+    @Transactional(readOnly = true)
+    public List<MissionHistoryDto> getMissionHistoryByUser(Long userId) {
+        List<MissionHistory> histories = missionHistoryRepository.findByUser_IdOrderByCompletedAtDesc(userId);
+        
+        return histories.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    
+    // 팀의 미션 히스토리 조회
+    @Transactional(readOnly = true)
+    public List<MissionHistoryDto> getMissionHistoryByTeam(Long teamId) {
+        List<MissionHistory> histories = missionHistoryRepository.findByTeamIdOrderByCompletedAtDesc(teamId);
+        
+        return histories.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    
+    // MissionHistory를 DTO로 변환
+    private MissionHistoryDto convertToDto(MissionHistory history) {
+        return MissionHistoryDto.builder()
+                .id(history.getId())
+                .subGroupId(history.getSubGroup().getId())
+                .userId(history.getUser().getId())
+                .userName(history.getUser().getName())
+                .missionTemplateId(history.getMissionTemplate().getId())
+                .missionTitle(history.getMissionTemplate().getTitle())
+                .missionDescription(history.getMissionTemplate().getDescription())
+                .missionScore(history.getMissionTemplate().getScore())
+                .completedAt(history.getCompletedAt())
+                .createdAt(history.getCreatedAt())
+                .build();
+    }
 }

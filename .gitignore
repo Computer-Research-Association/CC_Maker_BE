@@ -216,3 +216,6 @@ src/main/resources
 
 #
 .frontend
+
+# 프론트엔드 파일 제외
+CC_Maker_FE/
