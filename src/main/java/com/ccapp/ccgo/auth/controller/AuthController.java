@@ -80,18 +80,26 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@CookieValue(value = "refreshToken", required = false) String refreshToken) {
+    public ResponseEntity<?> refreshToken(
+            @CookieValue(value = "accessToken", required = false) String accessToken,
+            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
         try {
-            TokenResponseDto tokenResponse = authService.refreshToken(refreshToken);
+            if (accessToken == null || refreshToken == null) {
+                return ResponseEntity.status(401).body(Map.of("message", "토큰이 없습니다."));
+            }
+
+            TokenResponseDto tokenResponse = authService.refreshToken(accessToken, refreshToken);
             HttpHeaders headers = createTokenCookies(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
 
             log.info("새로운 쿠키: {}", headers.get(HttpHeaders.SET_COOKIE));
 
-
-
             return ResponseEntity.ok()
                     .headers(headers)
-                    .body(Map.of("message", "토큰 갱신 성공"));
+                    .body(Map.of(
+                        "message", "토큰 갱신 성공",
+                        "accessToken", tokenResponse.getAccessToken(),
+                        "refreshToken", tokenResponse.getRefreshToken()
+                    ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(401).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {

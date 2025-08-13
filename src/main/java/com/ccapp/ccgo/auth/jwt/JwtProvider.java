@@ -44,11 +44,11 @@ public class JwtProvider {
         String roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
-        return buildToken(username, Map.of("roles", roles), accessTokenExpiration);
+        return buildToken(username, Map.of("roles", roles, "type", "ACCESS"), accessTokenExpiration);
     }
 
     public String createRefreshToken(Authentication authentication) {
-        return buildToken(authentication.getName(), null, refreshTokenExpiration);
+        return buildToken(authentication.getName(), Map.of("type", "REFRESH"), refreshTokenExpiration);
     }
 
     private String buildToken(String subject, Map<String, Object> claims, long validityInMs) {
@@ -83,6 +83,48 @@ public class JwtProvider {
             log.warn("JWT 토큰 값 없음: {}", e.getMessage());
         }
         return false;
+    }
+
+    public boolean validateAccessToken(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            
+            return "ACCESS".equals(claims.get("type"));
+        } catch (Exception e) {
+            log.warn("Access Token 검증 실패: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean validateRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            
+            return "REFRESH".equals(claims.get("type"));
+        } catch (Exception e) {
+            log.warn("Refresh Token 검증 실패: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean validateTokenStructure(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
+        } catch (ExpiredJwtException e) {
+            // 만료는 허용 (구조는 유효)
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public String getEmailFromToken(String token) {

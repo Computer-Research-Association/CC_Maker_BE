@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 
@@ -251,7 +253,22 @@ public class SubGroupMissionService {
     public List<MissionHistoryDto> getMissionHistoryByTeam(Long teamId) {
         List<MissionHistory> histories = missionHistoryRepository.findByTeamIdOrderByCompletedAtDesc(teamId);
         
-        return histories.stream()
+        // 중복 제거: 같은 서브그룹의 같은 미션은 하나만 유지
+        Map<String, MissionHistory> uniqueMissions = new HashMap<>();
+        
+        for (MissionHistory history : histories) {
+            String key = history.getSubGroup().getId() + "_" + history.getMissionTemplate().getId();
+            if (!uniqueMissions.containsKey(key)) {
+                uniqueMissions.put(key, history);
+            }
+        }
+        
+        List<MissionHistory> uniqueHistories = new ArrayList<>(uniqueMissions.values());
+        
+        // 완료 시간 기준으로 정렬
+        uniqueHistories.sort((h1, h2) -> h2.getCompletedAt().compareTo(h1.getCompletedAt()));
+        
+        return uniqueHistories.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }

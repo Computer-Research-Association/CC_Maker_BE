@@ -19,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import java.util.List;
 
 
@@ -54,6 +55,20 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers
+                        // X-Frame-Options: 클릭재킹 공격 방지
+                        .frameOptions().deny()
+                        // X-Content-Type-Options: MIME 타입 스니핑 방지
+                        .contentTypeOptions().and()
+                        // X-XSS-Protection: XSS 공격 방지
+                        .xssProtection().and()
+                        // HSTS: HTTPS 강제 (2년으로 연장)
+                        .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+                                .maxAgeInSeconds(63072000) // 2년
+                        )
+                        // Referrer Policy: 리퍼러 정보 제한
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                )
                 .authorizeHttpRequests(auth -> auth
                         // 인증 필요 없는 엔드포인트
                         .requestMatchers("/api/auth/**", "/api/user/register").permitAll()
