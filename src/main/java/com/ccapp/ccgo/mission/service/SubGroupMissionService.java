@@ -198,19 +198,25 @@ public class SubGroupMissionService {
     
     // 미션 히스토리 저장
     private void saveMissionHistory(SubGroup subGroup, MissionTemplate missionTemplate) {
-        // 서브그룹의 모든 멤버에 대해 히스토리 저장
-        List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(subGroup.getId());
+        // 이미 같은 서브그룹에서 같은 미션의 히스토리가 있는지 확인
+        boolean exists = missionHistoryRepository.existsBySubGroup_IdAndMissionTemplate_Id(subGroup.getId(), missionTemplate.getId());
         
-        for (SubGroupMember member : members) {
-            MissionHistory history = MissionHistory.builder()
-                    .subGroup(subGroup)
-                    .team(subGroup.getTeam())
-                    .user(member.getUser())
-                    .missionTemplate(missionTemplate)
-                    .completedAt(LocalDateTime.now())
-                    .build();
-            
-                    missionHistoryRepository.save(history);
+        if (!exists) {
+            // 서브그룹의 첫 번째 멤버만 대표로 히스토리 저장
+            List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(subGroup.getId());
+            if (!members.isEmpty()) {
+                SubGroupMember representativeMember = members.get(0);
+                
+                MissionHistory history = MissionHistory.builder()
+                        .subGroup(subGroup)
+                        .team(subGroup.getTeam())
+                        .user(representativeMember.getUser())
+                        .missionTemplate(missionTemplate)
+                        .completedAt(LocalDateTime.now())
+                        .build();
+                
+                missionHistoryRepository.save(history);
+            }
         }
     }
     
