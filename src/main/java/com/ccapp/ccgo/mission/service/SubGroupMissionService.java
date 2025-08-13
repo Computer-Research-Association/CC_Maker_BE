@@ -276,26 +276,36 @@ public class SubGroupMissionService {
     // 사용자와 매칭된 상대방들의 이름 조회
     private List<String> getMatchedUserNames(Long userId, Long teamId) {
         try {
+            System.out.println("[getMatchedUserNames] userId: " + userId + ", teamId: " + teamId);
+            
             // 사용자가 속한 서브그룹 조회
             Optional<Long> subGroupIdOpt = subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId);
             if (subGroupIdOpt.isEmpty()) {
+                System.out.println("[getMatchedUserNames] 서브그룹을 찾을 수 없음");
                 return new ArrayList<>();
             }
             
             Long subGroupId = subGroupIdOpt.get();
+            System.out.println("[getMatchedUserNames] subGroupId: " + subGroupId);
             
             // 같은 서브그룹의 다른 멤버들 조회 (본인 제외)
             List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(subGroupId);
-            return members.stream()
+            System.out.println("[getMatchedUserNames] 전체 멤버 수: " + members.size());
+            
+            List<String> matchedNames = members.stream()
                     .map(member -> member.getUser().getName())
-                    .filter(name -> !name.equals(subGroupMemberRepository.findBySubGroup_Id(subGroupId)
-                            .stream()
+                    .filter(name -> !name.equals(members.stream()
                             .filter(m -> m.getUser().getId().equals(userId))
                             .findFirst()
                             .map(m -> m.getUser().getName())
                             .orElse("")))
                     .collect(Collectors.toList());
+            
+            System.out.println("[getMatchedUserNames] 매칭된 이름들: " + matchedNames);
+            return matchedNames;
         } catch (Exception e) {
+            System.err.println("[getMatchedUserNames] 오류 발생: " + e.getMessage());
+            e.printStackTrace();
             return new ArrayList<>();
         }
     }
