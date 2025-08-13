@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 
@@ -251,13 +252,18 @@ public class SubGroupMissionService {
     
     // MissionHistory를 DTO로 변환
     private MissionHistoryDto convertToDto(MissionHistory history) {
+        // 미션을 완료한 사용자와 매칭된 상대방들의 이름 조회
+        List<String> matchedNames = getMatchedUserNames(history.getUser().getId(), history.getTeam().getTeamId());
+        
         return MissionHistoryDto.builder()
                 .id(history.getId())
                 .subGroupId(history.getSubGroup().getId())
+                .subGroupName(history.getSubGroup().getName())
                 .teamId(history.getTeam().getTeamId())
                 .teamName(history.getTeam().getTeamName())
                 .userId(history.getUser().getId())
                 .userName(history.getUser().getName())
+                .matchedNames(matchedNames) // 매칭된 상대방들의 이름 추가
                 .missionTemplateId(history.getMissionTemplate().getId())
                 .missionTitle(history.getMissionTemplate().getTitle())
                 .missionDescription(history.getMissionTemplate().getDescription())
@@ -265,5 +271,32 @@ public class SubGroupMissionService {
                 .completedAt(history.getCompletedAt())
                 .createdAt(history.getCreatedAt())
                 .build();
+    }
+    
+    // 사용자와 매칭된 상대방들의 이름 조회
+    private List<String> getMatchedUserNames(Long userId, Long teamId) {
+        try {
+            // 사용자가 속한 서브그룹 조회
+            Optional<Long> subGroupIdOpt = subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId);
+            if (subGroupIdOpt.isEmpty()) {
+                return new ArrayList<>();
+            }
+            
+            Long subGroupId = subGroupIdOpt.get();
+            
+            // 같은 서브그룹의 다른 멤버들 조회 (본인 제외)
+            List<SubGroupMember> members = subGroupMemberRepository.findBySubGroup_Id(subGroupId);
+            return members.stream()
+                    .map(member -> member.getUser().getName())
+                    .filter(name -> !name.equals(subGroupMemberRepository.findBySubGroup_Id(subGroupId)
+                            .stream()
+                            .filter(m -> m.getUser().getId().equals(userId))
+                            .findFirst()
+                            .map(m -> m.getUser().getName())
+                            .orElse("")))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 }
