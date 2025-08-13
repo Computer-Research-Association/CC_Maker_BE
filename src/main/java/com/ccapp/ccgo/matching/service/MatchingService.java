@@ -127,6 +127,12 @@ public class MatchingService {
             return;
         }
         
+        // 여자만 있는 경우 처리 (남자가 0명일 때)
+        if (males.isEmpty() && !females.isEmpty()) {
+            handleFemaleOnlyGroups(females, groups, team, groupIndex, teamId);
+            return;
+        }
+        
         if (males.size() == 2) {
             SubGroup g = SubGroup.builder().team(team).name(team.getTeamName() + groupIndex++).memberCount(2).build();
             subGroupRepository.save(g);
@@ -143,14 +149,11 @@ public class MatchingService {
         }
 
         for (TeamMember female : females) {
-            for (SubGroup group : groups.stream().sorted(Comparator.comparingInt(SubGroup::getMemberCount)).collect(Collectors.toList())) {
-                if (group.getMemberCount() >= MAX_GROUP_SIZE) continue;
-                if (isFemaleInsertable(group, female, females.size())) {
-                    saveSubGroupMember(group, female.getUser());
-                    group.setMemberCount(group.getMemberCount() + 1);
-                    subGroupRepository.save(group);
-                    break;
-                }
+            SubGroup best = findBestGroupToInsert(female, groups, teamId);
+            if (best != null && best.getMemberCount() < MAX_GROUP_SIZE && isFemaleInsertable(best, female, females.size())) {
+                saveSubGroupMember(best, female.getUser());
+                best.setMemberCount(best.getMemberCount() + 1);
+                subGroupRepository.save(best);
             }
         }
     }
@@ -178,6 +181,74 @@ public class MatchingService {
                 groups.add(group);
             }
         }
+    }
+    
+    // 여자만 있는 경우 그룹 생성
+    private void handleFemaleOnlyGroups(List<TeamMember> females, List<SubGroup> groups, Team team, int groupIndex, Long teamId) {
+        int femaleCount = females.size();
+        
+        if (femaleCount <= 3) {
+            // 3명 이하면 하나의 그룹으로
+            SubGroup group = SubGroup.builder()
+                    .team(team)
+                    .name(team.getTeamName() + groupIndex++)
+                    .memberCount(femaleCount)
+                    .build();
+            subGroupRepository.save(group);
+            
+            for (TeamMember member : females) {
+                saveSubGroupMember(group, member.getUser());
+            }
+            groups.add(group);
+        } else if (femaleCount == 4) {
+            // 4명일 때: 2/2
+            createFemaleGroup(females.subList(0, 2), groups, team, groupIndex++, teamId);
+            createFemaleGroup(females.subList(2, 4), groups, team, groupIndex++, teamId);
+        } else if (femaleCount == 5) {
+            // 5명일 때: 2/3
+            createFemaleGroup(females.subList(0, 2), groups, team, groupIndex++, teamId);
+            createFemaleGroup(females.subList(2, 5), groups, team, groupIndex++, teamId);
+        } else if (femaleCount == 6) {
+            // 6명일 때: 2/2/2
+            createFemaleGroup(females.subList(0, 2), groups, team, groupIndex++, teamId);
+            createFemaleGroup(females.subList(2, 4), groups, team, groupIndex++, teamId);
+            createFemaleGroup(females.subList(4, 6), groups, team, groupIndex++, teamId);
+        } else {
+            // 6명 초과일 때: 2명씩 그룹으로 나누고, 남은 사람들은 기존 그룹에 추가
+            int groupCount = femaleCount / 2;
+            for (int i = 0; i < groupCount; i++) {
+                int startIndex = i * 2;
+                int endIndex = Math.min(startIndex + 2, femaleCount);
+                createFemaleGroup(females.subList(startIndex, endIndex), groups, team, groupIndex++, teamId);
+            }
+            
+            // 남은 사람들 처리 (1명이 남은 경우)
+            if (femaleCount % 2 == 1) {
+                TeamMember remainingFemale = females.get(femaleCount - 1);
+                // 설문 조사 결과가 가장 일치하는 그룹에 추가
+                SubGroup bestGroup = findBestGroupToInsert(remainingFemale, groups, teamId);
+                if (bestGroup != null && bestGroup.getMemberCount() < 3) {
+                    saveSubGroupMember(bestGroup, remainingFemale.getUser());
+                    bestGroup.setMemberCount(bestGroup.getMemberCount() + 1);
+                    subGroupRepository.save(bestGroup);
+                }
+            }
+        }
+    }
+    
+    // 여자 그룹 생성 헬퍼 메서드
+    private void createFemaleGroup(List<TeamMember> groupMembers, List<SubGroup> groups, Team team, int groupIndex, Long teamId) {
+        SubGroup group = SubGroup.builder()
+                .team(team)
+                .name(team.getTeamName() + groupIndex)
+                .memberCount(groupMembers.size())
+                .build();
+        subGroupRepository.save(group);
+        
+        for (TeamMember member : groupMembers) {
+            saveSubGroupMember(group, member.getUser());
+        }
+        groups.add(group);
     }
 
     private boolean isFemaleInsertable(SubGroup group, TeamMember female, int totalFemaleLeft) {
