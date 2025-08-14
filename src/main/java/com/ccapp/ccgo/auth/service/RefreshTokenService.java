@@ -17,11 +17,13 @@ public class RefreshTokenService {
 
     public void saveRefreshToken(String email, String refreshToken, long expirationMillis) {
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMillis / 1000);
+        LocalDateTime createdAt = LocalDateTime.now();
         
         RefreshToken token = RefreshToken.builder()
                 .email(email)
                 .refreshToken(refreshToken)
                 .expiresAt(expiresAt)
+                .createdAt(createdAt)
                 .build();
         
         refreshTokenRepository.save(token);
@@ -48,11 +50,13 @@ public class RefreshTokenService {
 
     public void updateRefreshToken(String email, String newRefreshToken, long expirationMillis) {
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMillis / 1000);
+        LocalDateTime createdAt = LocalDateTime.now();
         
         RefreshToken token = RefreshToken.builder()
                 .email(email)
                 .refreshToken(newRefreshToken)
                 .expiresAt(expiresAt)
+                .createdAt(createdAt)
                 .build();
         
         refreshTokenRepository.save(token);
