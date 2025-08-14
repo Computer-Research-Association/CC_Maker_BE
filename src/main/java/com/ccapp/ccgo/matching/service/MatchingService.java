@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -127,7 +128,7 @@ public class MatchingService {
             return;
         }
         
-        // 여자만 있는 경우 처리 (남자가 0명일 때)
+        // 여자만 있는 경우 처리
         if (males.isEmpty() && !females.isEmpty()) {
             handleFemaleOnlyGroups(females, groups, team, groupIndex, teamId);
             return;
@@ -167,7 +168,7 @@ public class MatchingService {
             int endIndex = Math.min(i + 2, maleCount);
             List<TeamMember> groupMembers = males.subList(i, endIndex);
             
-            if (groupMembers.size() >= 2) { // 2명 이상일 때만 그룹 생성
+            if (groupMembers.size() >= 2) {
                 SubGroup group = SubGroup.builder()
                         .team(team)
                         .name(team.getTeamName() + groupIndex++)
@@ -401,9 +402,13 @@ public class MatchingService {
         questionRepository.deleteById(questionId);
     }
 
-    //실험
+    /**
+     * 매칭된 팀원 이름 조회
+     */
     @Transactional(readOnly = true)
     public List<String> getMatchedUserNames(Long userId, Long teamId) {
+        log.info("[Matching] 매칭된 팀원 조회 | userId: {}, teamId: {}", userId, teamId);
+
         // 1. 유저 존재 확인
         userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자가 존재하지 않습니다."));
@@ -418,17 +423,22 @@ public class MatchingService {
         List<User> matchedUsers = subGroupMemberRepository.findTeamMatchedMembersExcludingUser(userId, teamId);
 
         // 4. 이름만 리스트로 변환 후 반환
-        return matchedUsers.stream()
+        List<String> matchedNames = matchedUsers.stream()
                 .map(User::getName)
                 .collect(Collectors.toList());
+
+        log.info("[Matching] 매칭된 팀원 수: {}", matchedNames.size());
+        return matchedNames;
     }
 
 
 
-    //매칭된 직후 발동하는놈
+    /**
+     * 사용자의 서브그룹 ID 조회
+     */
     public Long findSubGroupIdByTeamIdAndUserId(Long teamId, Long userId) {
         return subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId)
-                .orElse(null); // 없으면 null 반환 (적절히 처리)
+                .orElse(null);
     }
 
 

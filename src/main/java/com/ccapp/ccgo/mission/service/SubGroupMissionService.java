@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SubGroupMissionService {
 
     private final SubGroupRepository subGroupRepository;
@@ -117,27 +119,29 @@ public class SubGroupMissionService {
                 .toList();
     }
 
-    // 미션 새로고침 (완료 안 된 미션 삭제 후 새 할당)
+    /**
+     * 미션 새로고침 (완료 안 된 미션 삭제 후 새 할당)
+     */
     @Transactional
     public void refreshSingleMission(Long subGroupId, Long subGroupMissionId, Integer score) {
-        System.out.println("[refreshSingleMission] 호출됨 - subGroupId: " + subGroupId + ", subGroupMissionId: " + subGroupMissionId + ", score: " + score);
+        log.info("[Mission] 미션 새로고침 시작 | subGroupId: {}, missionId: {}, score: {}", subGroupId, subGroupMissionId, score);
 
-    // 1. 서브그룹 조회
-    SubGroup subGroup = subGroupRepository.findById(subGroupId)
-            .orElseThrow(() -> {
-                System.out.println("[refreshSingleMission] 서브그룹을 찾을 수 없습니다.");
-                return new IllegalArgumentException("서브그룹을 찾을 수 없습니다.");
-            });
+        // 1. 서브그룹 조회
+        SubGroup subGroup = subGroupRepository.findById(subGroupId)
+                .orElseThrow(() -> {
+                    log.error("[Mission] 서브그룹을 찾을 수 없음 | subGroupId: {}", subGroupId);
+                    return new IllegalArgumentException("서브그룹을 찾을 수 없습니다.");
+                });
 
     // 2. 교체할 기존 미션 조회
     SubGroupMission oldMission = subGroupMissionRepository.findById(subGroupMissionId)
             .orElseThrow(() -> {
-                System.out.println("[refreshSingleMission] 교체할 미션을 찾을 수 없습니다.");
+                log.error("[Mission] 교체할 미션을 찾을 수 없음 | missionId: {}", subGroupMissionId);
                 return new IllegalArgumentException("교체할 미션을 찾을 수 없습니다.");
             });
 
     if (!oldMission.getSubGroup().getId().equals(subGroupId)) {
-        System.out.println("[refreshSingleMission] 해당 미션이 서브그룹에 속하지 않습니다.");
+        log.error("[Mission] 해당 미션이 서브그룹에 속하지 않음 | subGroupId: {}, missionSubGroupId: {}", subGroupId, oldMission.getSubGroup().getId());
         throw new IllegalArgumentException("해당 미션이 서브그룹에 속하지 않습니다.");
     }
 
@@ -147,7 +151,7 @@ public class SubGroupMissionService {
             .map(m -> m.getMissionTemplate().getId())
             .toList();
 
-    System.out.println("[refreshSingleMission] 현재 서브그룹에 할당된 동일 학점 미션 ID 목록: " + assignedMissionTemplateIds);
+    log.debug("[Mission] 현재 서브그룹에 할당된 동일 학점 미션 ID 목록: {}", assignedMissionTemplateIds);
 
     // 4. 교체 후보 미션 (현재 미션 제외) - 가변 리스트로 변환
     List<MissionTemplate> candidates = missionTemplateRepository.findByScore(score).stream()
@@ -155,7 +159,7 @@ public class SubGroupMissionService {
             .filter(mt -> !mt.getId().equals(oldMission.getMissionTemplate().getId())) // 기존 미션 제외
             .collect(Collectors.toList());
 
-    System.out.println("[refreshSingleMission] 교체 후보 미션 수: " + candidates.size());
+    log.debug("[Mission] 교체 후보 미션 수: {}", candidates.size());
 
     if (candidates.isEmpty()) {
         throw new IllegalStateException("교체 가능한 미션이 없습니다.");
@@ -169,7 +173,7 @@ public class SubGroupMissionService {
     oldMission.setMissionTemplate(newMissionTemplate);
     oldMission.setCompleted(false);
 
-    System.out.println("[refreshSingleMission] 랜덤으로 선택된 미션 ID: " + newMissionTemplate.getId());
+    log.info("[Mission] 미션 교체 완료 | oldMissionId: {}, newMissionId: {}", oldMission.getMissionTemplate().getId(), newMissionTemplate.getId());
 }
 
 

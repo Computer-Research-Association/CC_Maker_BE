@@ -23,95 +23,77 @@ import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/matching") // 경로수정필요
+@RequestMapping("/api/matching")
 @Slf4j
 public class MatchingController {
 
     private final MatchingService matchingService;
-    private final SubGroupMemberRepository subGroupMemberRepository; // ✅ 주입
+    private final SubGroupMemberRepository subGroupMemberRepository;
 
     /**
-     * 팀장이 매칭 시작 버튼 누를 때 호출
+     * 팀 매칭 시작
+     * 팀장이 매칭 시작 버튼을 누를 때 호출
      */
-//    @PreAuthorize("hasRole('TEAM_LEADER')") 매칭권한
-    //이런식으로 ResponseEntity를 써야 한다.
     @PostMapping("/start/{teamId}")
     public ResponseEntity<MatchingResponseDto> startMatching(@PathVariable Long teamId) {
-        log.info("[Matching Start] 요청받음 | teamId: {}", teamId);
+        log.info("[Matching] 매칭 시작 요청 | teamId: {}", teamId);
         return ResponseEntity.ok(matchingService.performMatching(teamId));
     }
 
+    /**
+     * 설문 답변 저장
+     */
     @PostMapping("/answer")
-        public ResponseEntity<Void> saveAnswers(@RequestBody AnswerRequestDto dto,
-                                            @AuthenticationPrincipal LoginUserDetails loginUserDetails) {
+    public ResponseEntity<Void> saveAnswers(@RequestBody AnswerRequestDto dto,
+                                        @AuthenticationPrincipal LoginUserDetails loginUserDetails) {
         User currentUser = loginUserDetails.getUser();
         matchingService.saveAnswers(dto, currentUser);
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * 설문 질문 생성
+     */
     @PostMapping("/question")
     public void createQuestions(@RequestBody QuestionRequestDto requestDto) {
         matchingService.createQuestions(requestDto);
     }
 
+    /**
+     * 팀별 설문 질문 조회
+     */
     @GetMapping("/question")
     public List<QuestionResponseDto> getQuestions(@RequestParam Long teamId) {
         return matchingService.getQuestions(teamId);
     }
 
+    /**
+     * 설문 질문 수정
+     */
     @PutMapping("/question/{questionId}")
     public void updateQuestion(@PathVariable Long questionId,
                                @RequestBody QuestionUpdateDto dto) {
         matchingService.updateQuestion(questionId, dto);
     }
 
+    /**
+     * 설문 질문 삭제
+     */
     @DeleteMapping("/question/{questionId}")
     public void deleteQuestion(@PathVariable Long questionId) {
         matchingService.deleteQuestion(questionId);
     }
 
-
-
-    //왜 안되냐
-//    @GetMapping("/matched-names/{teamId}/{subGroupId}")
-//    public ResponseEntity<MatchedNamesResponse> getMatchedNames(@AuthenticationPrincipal LoginUserDetails userDetails,
-//                                                                @PathVariable Long teamId,
-//                                                                @PathVariable Long subGroupId) {
-//        List<String> matchedNames = matchingService.getMatchedUserNames(userDetails.getUser().getId(), teamId, subGroupId);
-//        MatchedNamesResponse response = new MatchedNamesResponse(teamId, subGroupId, matchedNames);
-//        return ResponseEntity.ok(response);
-//    }
-
-//    //매칭된 이후, 팀id랑 subgroupid로 팀원 찾아오는놈
-//    //이거 authenticaiton 아직 구현 안되서 그런듯
-//    @GetMapping("/matched-names/{teamId}/{subGroupId}")
-//    public ResponseEntity<MatchedNamesResponse> getMatchedNames(@AuthenticationPrincipal LoginUserDetails userDetails,
-//                                                                @PathVariable Long teamId,
-//                                                                @PathVariable Long subGroupId) {
-//        try {
-//            Long userId = userDetails.getUser().getId();
-//            System.out.println("[getMatchedNames] userId: " + userId + ", teamId: " + teamId + ", subGroupId: " + subGroupId);
-//
-//            List<String> matchedNames = matchingService.getMatchedUserNames(userId, teamId, subGroupId);
-//
-//            System.out.println("[getMatchedNames] matchedNames size: " + (matchedNames != null ? matchedNames.size() : "null"));
-//
-//            MatchedNamesResponse response = new MatchedNamesResponse(teamId, subGroupId, matchedNames);
-//            return ResponseEntity.ok(response);
-//        } catch (Exception e) {
-//            System.err.println("[getMatchedNames] 서버 에러 발생: " + e.getMessage());
-//            e.printStackTrace();
-//            return ResponseEntity.status(500).build();
-//        }
-//    }
-
-    //매칭되고 난 뒤 쓰이는 놈일텐데..
+    /**
+     * 매칭된 팀원 이름 조회
+     * 매칭 완료 후 해당 사용자의 서브그룹 멤버들을 조회
+     */
     @GetMapping("/matched-names/{teamId}")
     public ResponseEntity<MatchedNamesResponse> getMatchedNames(
             @RequestParam Long userId,
             @PathVariable Long teamId) {
 
-        System.out.printf("[getMatchedNames] userId: %d, teamId: %d%n", userId, teamId);
+        log.info("[Matching] 매칭된 팀원 조회 | userId: {}, teamId: {}", userId, teamId);
 
         // 1) userId와 teamId로 subGroupId 조회
         Long subGroupId = matchingService.findSubGroupIdByTeamIdAndUserId(teamId, userId);
@@ -124,24 +106,26 @@ public class MatchingController {
         // 2) 매칭된 멤버 이름 조회 (본인 제외)
         List<String> matchedNames = matchingService.getMatchedUserNames(userId, teamId);
 
-        System.out.printf("[getMatchedNames] matchedNames size: %d%n", matchedNames.size());
+        log.info("[Matching] 매칭된 팀원 수: {}", matchedNames.size());
 
         MatchedNamesResponse response = new MatchedNamesResponse(teamId, subGroupId, matchedNames);
 
         return ResponseEntity.ok(response);
     }
 
-     //매칭된 직후 작동하는놈
-     //현재 임시로 userid 받아오는중인데, 나중에 jwt로 수정 필요.
-     @GetMapping("/subgroup/{teamId}")
-     public ResponseEntity<Map<String, Object>> getSubGroupIdByTeamId(
-             @PathVariable Long teamId,
-             @RequestParam Long userId) {
-         Optional<Long> subGroupId = subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId);
-         Map<String, Object> response = new HashMap<>();
-         response.put("subGroupId", subGroupId.orElse(null)); // null 허용 가능
-         return ResponseEntity.ok(response);
-     }
+    /**
+     * 사용자의 서브그룹 ID 조회
+     * 매칭 완료 후 사용자가 속한 서브그룹을 확인
+     */
+    @GetMapping("/subgroup/{teamId}")
+    public ResponseEntity<Map<String, Object>> getSubGroupIdByTeamId(
+            @PathVariable Long teamId,
+            @RequestParam Long userId) {
+        Optional<Long> subGroupId = subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("subGroupId", subGroupId.orElse(null));
+        return ResponseEntity.ok(response);
+    }
 
 }
 

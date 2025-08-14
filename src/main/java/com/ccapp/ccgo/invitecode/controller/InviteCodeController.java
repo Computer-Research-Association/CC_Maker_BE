@@ -21,10 +21,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/invitecode")
 @RequiredArgsConstructor
+@Slf4j
 public class InviteCodeController {
 
     private final InviteCodeService inviteCodeService;
@@ -32,25 +34,17 @@ public class InviteCodeController {
     private final TeamMemberRepository teamMemberRepository;
     private final TeamRepository teamRepository;
 
-    //코드 만드는 부분
+    /**
+     * 초대코드 생성
+     */
     @PostMapping("/create")
     public ResponseEntity<InviteCodeCreateResponseDto> createInviteCode(
             @AuthenticationPrincipal LoginUserDetails userDetails,
             @RequestBody InviteCodeCreateRequestDto requestDto) {
 
-        System.out.println("초대코드 생성 요청 들어옴");
-        System.out.println("userDetails: " + userDetails);
-
-        //작동확인 주석
-        if (userDetails != null) {
-            System.out.println("인증된 사용자 이메일: " + userDetails.getUsername());
-            System.out.println("사용자 권한: " + userDetails.getAuthorities());
-        } else {
-            System.out.println("userDetails가 null입니다. 인증 정보 없음.");
-        }
+        log.info("[InviteCode] 초대코드 생성 요청 | user: {}", userDetails.getUsername());
 
         User user = userDetails.getUser();
-        System.out.print("코드 만듭니당");
         Long teamId = requestDto.getTeamId();
 
         InviteCode inviteCode = inviteCodeService.createInviteCode(user, teamId);
@@ -60,12 +54,15 @@ public class InviteCodeController {
                 .expiresAt(inviteCode.getExpiresAt())
                 .build();
 
-        return ResponseEntity.ok(responseDto);
+        log.info("[InviteCode] 초대코드 생성 완료 | code: {}", inviteCode.getCode());
 
+        return ResponseEntity.ok(responseDto);
     }
 
 
-    //팀 생성하기를 누르면 팀이 만들어집니당
+    /**
+     * 팀 생성
+     */
     @PostMapping("/teamname")
     public ResponseEntity<TeamResponseDto> saveTeamName(
             @AuthenticationPrincipal LoginUserDetails userDetails,
@@ -84,13 +81,15 @@ public class InviteCodeController {
                 .teamName(team.getTeamName())
                 .build();
 
-        System.out.println("🔎 컨트롤러에서 내려보내는 responseDto = " + responseDto);
+        log.info("[InviteCode] 팀 생성 완료 | teamId: {}", team.getTeamId());
 
         return ResponseEntity.ok(responseDto);
     }
 
 
-    //팀원이 코드를 보냈으면 처리
+    /**
+     * 초대코드로 팀 가입
+     */
     @PostMapping("/join")
     public ResponseEntity<?> joinByInviteCode(
             @RequestBody InviteCodeJoinRequestDto requestDto,
@@ -101,9 +100,10 @@ public class InviteCodeController {
         }
 
         User user = userDetails.getUser();
-        System.out.println("1. 컨트롤러 진입");
+        log.info("[InviteCode] 팀 가입 요청 | user: {}, code: {}", user.getEmail(), requestDto.getInviteCode());
         String teamName = inviteCodeService.joinTeamByInviteCode(requestDto.getInviteCode(), user);
 
+        log.info("[InviteCode] 팀 가입 완료 | user: {}, team: {}", user.getEmail(), teamName);
         return ResponseEntity.ok(new InviteCodeJoinResponseDto(teamName));
     }
 
