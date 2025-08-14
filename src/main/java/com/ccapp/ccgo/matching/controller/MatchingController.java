@@ -131,17 +131,17 @@ public class MatchingController {
         return ResponseEntity.ok(response);
     }
 
-    //매칭된 직후 작동하는놈
-    //현재 임시로 userid 받아오는중인데, 나중에 jwt로 수정 필요.
-    @GetMapping("/subgroup/{teamId}")
-    public ResponseEntity<Map<String, Object>> getSubGroupIdByTeamId(
-            @PathVariable Long teamId,
-            @RequestParam Long userId) {
-        Optional<Long> subGroupId = subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("subGroupId", subGroupId.orElse(null)); // null 허용 가능
-        return ResponseEntity.ok(response);
-    }
+    // //매칭된 직후 작동하는놈
+    // //현재 임시로 userid 받아오는중인데, 나중에 jwt로 수정 필요.
+    // @GetMapping("/subgroup/{teamId}")
+    // public ResponseEntity<Map<String, Object>> getSubGroupIdByTeamId(
+    //         @PathVariable Long teamId,
+    //         @RequestParam Long userId) {
+    //     Optional<Long> subGroupId = subGroupMemberRepository.findSubGroupIdByTeamIdAndUserId(teamId, userId);
+    //     Map<String, Object> response = new HashMap<>();
+    //     response.put("subGroupId", subGroupId.orElse(null)); // null 허용 가능
+    //     return ResponseEntity.ok(response);
+    // }
 
 }
 
