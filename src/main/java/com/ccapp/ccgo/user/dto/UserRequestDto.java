@@ -16,4 +16,11 @@ public class UserRequestDto {
     private String name;
     private String gender;
     private LocalDate birthdate;
+    
+    // 개인정보 동의 관련 필드들
+    private String privacyAgreementVersion;
+    private boolean privacyAgreed;
+    private String privacyAgreedAt;
+    private String privacyAgreedMethod;
+    private String privacyAgreedEnvironment;
 }

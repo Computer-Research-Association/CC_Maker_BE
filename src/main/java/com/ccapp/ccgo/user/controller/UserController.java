@@ -5,6 +5,7 @@ import com.ccapp.ccgo.user.dto.UserRequestDto;
 import com.ccapp.ccgo.user.dto.UserResponseDto;
 import com.ccapp.ccgo.user.dto.UserUpdateRequestDto;
 import com.ccapp.ccgo.user.dto.PasswordChangeRequestDto;
+import com.ccapp.ccgo.user.entity.PrivacyAgreement;
 import org.springframework.http.HttpStatus;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -48,25 +49,33 @@ public class UserController {
 
     // 사용자 정보 전체 업데이트 (PUT)
     @PutMapping("/me")
-    public ResponseEntity<UserResponseDto> updateCurrentUserFull(@Valid @RequestBody UserUpdateRequestDto userUpdateRequestDto) {
-        log.info("✅ 사용자 정보 전체 업데이트 요청: {}", userUpdateRequestDto);
-        UserResponseDto updated = userService.updateCurrentUserFull(userUpdateRequestDto);
+    public ResponseEntity<UserResponseDto> updateCurrentUserFull(@Valid @RequestBody UserRequestDto userRequestDto) {
+        log.info("✅ 사용자 정보 전체 업데이트 요청: {}", userRequestDto);
+        UserResponseDto updated = userService.updateCurrentUserFull(userRequestDto);
         return ResponseEntity.ok(updated);
     }
 
     // 비밀번호 변경
-    @PostMapping("/change-password")
+    @PatchMapping("/me/password")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody PasswordChangeRequestDto passwordChangeRequestDto) {
         log.info("✅ 비밀번호 변경 요청");
         userService.changePassword(passwordChangeRequestDto);
         return ResponseEntity.ok().build();
     }
 
-    // 계정 탈퇴
-    @DeleteMapping("/me")
-    public ResponseEntity<Void> deleteCurrentUser() {
-        log.info("✅ 계정 탈퇴 요청");
-        userService.deleteCurrentUser();
-        return ResponseEntity.ok().build();
+    // 개인정보 동의서 조회 (현재 활성화된 버전)
+    @GetMapping("/privacy-agreement/current")
+    public ResponseEntity<PrivacyAgreement> getCurrentPrivacyAgreement() {
+        log.info("✅ 현재 개인정보 동의서 조회 요청");
+        PrivacyAgreement agreement = userService.getCurrentPrivacyAgreement();
+        return ResponseEntity.ok(agreement);
+    }
+
+    // 특정 버전의 개인정보 동의서 조회
+    @GetMapping("/privacy-agreement/{version}")
+    public ResponseEntity<PrivacyAgreement> getPrivacyAgreementByVersion(@PathVariable String version) {
+        log.info("✅ 개인정보 동의서 조회 요청 - 버전: {}", version);
+        PrivacyAgreement agreement = userService.getPrivacyAgreementByVersion(version);
+        return ResponseEntity.ok(agreement);
     }
 }
