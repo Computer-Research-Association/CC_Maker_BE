@@ -71,7 +71,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // 인증 필요 없는 엔드포인트
-                        .requestMatchers("/api/auth/**", "/api/user/register").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/user/register", "/api/user/privacy-agreement/**").permitAll()
 
                         // LEADER 전용 API (팀 관리)
                         .requestMatchers("/api/team/**").hasAnyRole("LEADER", "MEMBER")
@@ -92,7 +92,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"));    // 개발용 origin들
+        config.setAllowedOrigins(List.of(
+            "http://localhost:3000", 
+            "http://localhost:5173", 
+            "http://127.0.0.1:3000", 
+            "http://127.0.0.1:5173",
+            "http://3.39.54.128:8080"  // 실제 서버 IP로 변경 필요
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);  // 쿠키 허용
