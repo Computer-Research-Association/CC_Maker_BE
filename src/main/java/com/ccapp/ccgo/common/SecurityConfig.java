@@ -57,11 +57,11 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers
                         // X-Frame-Options: 클릭재킹 공격 방지
-                        .frameOptions().deny()
+                        .frameOptions(frameOptions -> frameOptions.deny())
                         // X-Content-Type-Options: MIME 타입 스니핑 방지
-                        .contentTypeOptions().and()
+                        .contentTypeOptions(contentTypeOptions -> {})
                         // X-XSS-Protection: XSS 공격 방지
-                        .xssProtection().and()
+                        .xssProtection(xssProtection -> {})
                         // HSTS: HTTPS 강제 (2년으로 연장)
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                                 .maxAgeInSeconds(63072000) // 2년

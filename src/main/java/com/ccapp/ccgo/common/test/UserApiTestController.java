@@ -1,5 +1,6 @@
 package com.ccapp.ccgo.common.test;
 
+import com.ccapp.ccgo.user.dto.UserRequestDto;
 import com.ccapp.ccgo.user.dto.UserUpdateRequestDto;
 import com.ccapp.ccgo.user.dto.PasswordChangeRequestDto;
 import com.ccapp.ccgo.user.service.UserService;
@@ -41,7 +42,7 @@ public class UserApiTestController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<?> testUpdateCurrentUserFull(@RequestBody UserUpdateRequestDto dto) {
+    public ResponseEntity<?> testUpdateCurrentUserFull(@RequestBody UserRequestDto dto) {
         log.info("🧪 테스트: 사용자 정보 전체 업데이트 - {}", dto);
         try {
             var result = userService.updateCurrentUserFull(dto);

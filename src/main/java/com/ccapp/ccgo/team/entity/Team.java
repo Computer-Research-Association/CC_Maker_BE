@@ -41,6 +41,7 @@ public class Team {
 
     // 매칭 시작 여부 추가
     @Column(name = "matching_started", nullable = false)
+    @Builder.Default
     private boolean matchingStarted = false;
 
     @Column(name = "min_score")

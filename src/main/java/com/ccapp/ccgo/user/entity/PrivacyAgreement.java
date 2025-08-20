@@ -42,6 +42,7 @@ public class PrivacyAgreement {
 
     // 활성화 여부 (현재 사용 중인 버전인지)
     @Column(nullable = false)
+    @Builder.Default
     private boolean isActive = true;
 
     // 생성 시 자동으로 현재 시간 설정
