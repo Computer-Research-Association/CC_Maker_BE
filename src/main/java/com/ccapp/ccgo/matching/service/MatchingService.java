@@ -141,8 +141,9 @@ public class MatchingService {
             saveSubGroupMember(g, males.get(1).getUser());
             groups.add(g);
         } else if (males.size() == 1) {
+            // 1명이 남으면 유사도 기준으로 기존 그룹에 추가 (1명짜리 그룹 절대 생성 금지)
             SubGroup best = findBestGroupToInsert(males.get(0), groups, teamId);
-            if (best != null && best.getMemberCount() < MAX_GROUP_SIZE) {
+            if (best != null) {
                 saveSubGroupMember(best, males.get(0).getUser());
                 best.setMemberCount(best.getMemberCount() + 1);
                 subGroupRepository.save(best);
@@ -150,8 +151,9 @@ public class MatchingService {
         }
 
         for (TeamMember female : females) {
+            // 여자도 유사도 기준으로 기존 그룹에 추가 (1명짜리 그룹 절대 생성 금지)
             SubGroup best = findBestGroupToInsert(female, groups, teamId);
-            if (best != null && best.getMemberCount() < MAX_GROUP_SIZE && isFemaleInsertable(best, female, females.size())) {
+            if (best != null && isFemaleInsertable(best, female, females.size())) {
                 saveSubGroupMember(best, female.getUser());
                 best.setMemberCount(best.getMemberCount() + 1);
                 subGroupRepository.save(best);
@@ -180,6 +182,14 @@ public class MatchingService {
                     saveSubGroupMember(group, member.getUser());
                 }
                 groups.add(group);
+            } else if (groupMembers.size() == 1) {
+                // 1명이 남으면 유사도 기준으로 기존 그룹에 추가 (1명짜리 그룹 절대 생성 금지)
+                SubGroup best = findBestGroupToInsert(groupMembers.get(0), groups, teamId);
+                if (best != null) {
+                    saveSubGroupMember(best, groupMembers.get(0).getUser());
+                    best.setMemberCount(best.getMemberCount() + 1);
+                    subGroupRepository.save(best);
+                }
             }
         }
     }
@@ -228,7 +238,7 @@ public class MatchingService {
                 TeamMember remainingFemale = females.get(femaleCount - 1);
                 // 설문 조사 결과가 가장 일치하는 그룹에 추가
                 SubGroup bestGroup = findBestGroupToInsert(remainingFemale, groups, teamId);
-                if (bestGroup != null && bestGroup.getMemberCount() < 3) {
+                if (bestGroup != null) {
                     saveSubGroupMember(bestGroup, remainingFemale.getUser());
                     bestGroup.setMemberCount(bestGroup.getMemberCount() + 1);
                     subGroupRepository.save(bestGroup);
@@ -263,8 +273,26 @@ public class MatchingService {
     }
 
     private SubGroup findBestGroupToInsert(TeamMember tm, List<SubGroup> groups, Long teamId) {
+        // 1. 4명이 아닌 그룹 중에서 3명이 아닌 그룹 (즉, 2명 그룹) 우선 선택
+        Optional<SubGroup> twoMemberGroup = groups.stream()
+                .filter(g -> g.getMemberCount() == 2)
+                .max(Comparator.comparingDouble(g -> calculateAverageSimilarity(tm, g, teamId)));
+        
+        if (twoMemberGroup.isPresent()) {
+            return twoMemberGroup.get();
+        }
+        
+        // 2. 모든 그룹이 3명이라면 3명 그룹 중에서 유사도가 가장 높은 그룹 선택
+        Optional<SubGroup> threeMemberGroup = groups.stream()
+                .filter(g -> g.getMemberCount() == 3)
+                .max(Comparator.comparingDouble(g -> calculateAverageSimilarity(tm, g, teamId)));
+        
+        if (threeMemberGroup.isPresent()) {
+            return threeMemberGroup.get();
+        }
+        
+        // 3. 모든 그룹이 4명이어도 유사도가 가장 높은 그룹 선택 (1명짜리 그룹 절대 생성 금지)
         return groups.stream()
-                .filter(g -> g.getMemberCount() < MAX_GROUP_SIZE)
                 .max(Comparator.comparingDouble(g -> calculateAverageSimilarity(tm, g, teamId)))
                 .orElse(null);
     }
