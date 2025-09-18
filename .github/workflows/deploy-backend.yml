@@ -1,0 +1,77 @@
+name: Deploy Spring Boot to EC2
+
+on:
+  push:
+    branches:
+      - RefactoringBE
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Give gradlew execute permission
+        run: chmod +x ./gradlew
+
+      - name: Build Spring Boot JAR
+        run: ./gradlew clean bootJar -x test
+
+      - name: Prepare deployment directory
+        run: |
+          mkdir -p deploy
+          cp build/libs/*.jar deploy/app.jar
+
+
+      - name: Create .env file for prod
+        run: |
+          echo "SPRING_DATASOURCE_URL=${{ secrets.DEPLOY_DB_URL }}"       >> deploy/.env
+          echo "SPRING_DATASOURCE_USERNAME=${{ secrets.DEPLOY_DB_USER }}" >> deploy/.env
+          echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.DEPLOY_DB_PASS }}" >> deploy/.env
+
+          echo "DB_ROOT_PASS=${{ secrets.DB_ROOT_PASS }}"                 >> deploy/.env
+
+          echo "DB_URL=${{ secrets.DB_URL }}"                             >> deploy/.env
+          echo "DB_USER=${{ secrets.DB_USER }}"                           >> deploy/.env
+          echo "DB_PASS=${{ secrets.DB_PASS }}"                           >> deploy/.env
+
+          echo "SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver" >> deploy/.env
+          echo "JWT_SECRET=${{ secrets.DEPLOY_JWT_SECRET }}"              >> deploy/.env
+          echo "JWT_ACCESS_TOKEN_EXPIRATION=86400000"                     >> deploy/.env
+          echo "JWT_REFRESH_TOKEN_EXPIRATION=604800000"                   >> deploy/.env
+
+          echo "MYSQL_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASS }}"          >> deploy/.env
+
+          echo "SPRING_JPA_HIBERNATE_DDL_AUTO=update"                     >> deploy/.env  
+      
+
+      - name: Upload app.jar and .env to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.PEM_KEY }}
+          source: "deploy/app.jar,deploy/.env,docker-compose.yml"
+          target: "/home/ec2-user/ccgo"
+          strip_components: 1
+      - name: SSH into EC2 and restart Docker container
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.PEM_KEY }}
+          script: |
+            cd ~/ccgo
+            docker stop ccgo-app || true
+            docker rm ccgo-app || true
+            docker rmi ccgo-app || true
+            docker compose build
+            docker compose up -d

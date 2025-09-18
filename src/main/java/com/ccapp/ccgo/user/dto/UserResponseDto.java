@@ -1,0 +1,27 @@
+package com.ccapp.ccgo.user.dto;
+
+import lombok.Builder;
+import lombok.Getter;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Getter
+@Builder
+public class UserResponseDto {
+    private Long id;
+    private String email;
+    private String name;
+    private String gender;
+    private LocalDate birthdate;
+    private LocalDateTime createdAt;
+    private String role;
+    private String mbti; // mbti 값
+    
+    // 개인정보 동의 관련 필드들
+    private String privacyAgreementVersion;
+    private boolean privacyAgreed;
+    private LocalDateTime privacyAgreedAt;
+    private String privacyAgreedMethod;
+    private String privacyAgreedEnvironment;
+}
+
