@@ -7,12 +7,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.ccapp.ccgo.mission.service.SubGroupMissionService;
 import com.ccapp.ccgo.mission.dto.SubGroupMissionDto;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/missions")
 @RequiredArgsConstructor
+@Slf4j
 public class MissionAssignmentController {
 
     private final SubGroupMissionService subGroupMissionService;
@@ -44,14 +46,16 @@ public class MissionAssignmentController {
     }
 
 
-    //미션 새로고침
+    /**
+     * 미션 새로고침
+     */
     @PostMapping("/refresh/subgroup/{subGroupId}/{subGroupMissionId}/{score}")
     public ResponseEntity<String> refreshMission(
             @PathVariable Long subGroupId,
             @PathVariable Long subGroupMissionId,
             @PathVariable Integer score) {
         try {
-            System.out.println("진입합니당." + subGroupId + subGroupMissionId + score);
+            log.info("[Mission] 미션 새로고침 요청 | subGroupId: {}, missionId: {}, score: {}", subGroupId, subGroupMissionId, score);
             subGroupMissionService.refreshSingleMission(subGroupId, subGroupMissionId, score);
             return ResponseEntity.ok("미션 새로고침 완료");
         } catch (Exception e) {

@@ -58,6 +58,7 @@ public class TeamMember {
 
     //설문조사를 햇슴까
     @Column(nullable = false)
+    @Builder.Default
     private boolean isSurveyCompleted = false;  // 설문조사 기본값 false
 
     // MBTI 필드

@@ -48,6 +48,22 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    // 개인정보 동의 관련 필드들
+    @Column(name = "privacy_agreement_version")
+    private String privacyAgreementVersion;
+
+    @Column(name = "privacy_agreed")
+    private boolean privacyAgreed;
+
+    @Column(name = "privacy_agreed_at")
+    private LocalDateTime privacyAgreedAt;
+
+    @Column(name = "privacy_agreed_method")
+    private String privacyAgreedMethod;
+
+    @Column(name = "privacy_agreed_environment")
+    private String privacyAgreedEnvironment;
+
     // 회원 가입 시 자동으로 현재 시간 설정
     @PrePersist
     public void prePersist() {

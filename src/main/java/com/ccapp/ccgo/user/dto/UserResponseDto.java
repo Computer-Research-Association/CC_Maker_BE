@@ -16,5 +16,12 @@ public class UserResponseDto {
     private LocalDateTime createdAt;
     private String role;
     private String mbti; // mbti 값
+    
+    // 개인정보 동의 관련 필드들
+    private String privacyAgreementVersion;
+    private boolean privacyAgreed;
+    private LocalDateTime privacyAgreedAt;
+    private String privacyAgreedMethod;
+    private String privacyAgreedEnvironment;
 }
 

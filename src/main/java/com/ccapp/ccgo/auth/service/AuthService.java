@@ -22,6 +22,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final TeamMemberRepository teamMemberRepository;
     private final LoginUserDetailsService loginUserDetailsService;
+    private final RefreshTokenService refreshTokenService;
 
     public LoginResponseDto login(String email, String password) {
         Authentication authentication = authenticationManager.authenticate(
@@ -33,6 +34,9 @@ public class AuthService {
 
         LoginUserDetails userDetails = (LoginUserDetails) authentication.getPrincipal();
         var user = userDetails.getUser();
+
+        // Refresh Token DB 저장
+        refreshTokenService.saveRefreshToken(email, refreshToken, jwtProvider.getRefreshTokenExpiration());
 
         List<TeamMember> teamMembers = teamMemberRepository.findAllByUserAndIsActiveTrue(user);
 
@@ -55,21 +59,34 @@ public class AuthService {
                 .build();
     }
 
-    public TokenResponseDto refreshToken(String refreshToken) {
-        if (!jwtProvider.validateToken(refreshToken)) {
-            throw new IllegalArgumentException("리프레시 토큰이 없거나 유효하지 않습니다.");
+    public TokenResponseDto refreshToken(String accessToken, String refreshToken) {
+        // 1. Access Token 구조 검증 (만료는 허용)
+        if (!jwtProvider.validateTokenStructure(accessToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Access Token 구조입니다.");
         }
 
+        // 2. Refresh Token 검증
+        if (!jwtProvider.validateRefreshToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+        }
+
+        // 3. DB의 Refresh Token과 비교
         String email = jwtProvider.getEmailFromToken(refreshToken);
+        if (!refreshTokenService.validateRefreshToken(email, refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+        }
 
+        // 4. 새로운 토큰 생성
         LoginUserDetails userDetails = (LoginUserDetails) loginUserDetailsService.loadUserByUsername(email);
-
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, null, userDetails.getAuthorities()
         );
 
         String newAccessToken = jwtProvider.createAccessToken(authentication);
         String newRefreshToken = jwtProvider.createRefreshToken(authentication);
+
+        // 5. Refresh Token Rotation (기존 토큰 삭제, 새로운 토큰 저장)
+        refreshTokenService.updateRefreshToken(email, newRefreshToken, jwtProvider.getRefreshTokenExpiration());
 
         return new TokenResponseDto(newAccessToken, newRefreshToken);
     }
